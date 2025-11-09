@@ -13,11 +13,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "payment_cards", indexes = {
-    @Index(name = "idx_card_user_id", columnList = "user_id"),
     @Index(name = "idx_card_number", columnList = "number"),
-    @Index(name = "idx_card_active", columnList = "active"),
-    @Index(name = "idx_card_expiration_date", columnList = "expiration_date"),
-    @Index(name = "idx_card_created_at", columnList = "created_at")
+    @Index(name = "idx_card_expiration_date", columnList = "expiration_date")
 })
 @Getter
 @Setter
