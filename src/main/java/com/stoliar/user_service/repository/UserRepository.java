@@ -20,24 +20,14 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Modifying
     @Query(value = "INSERT INTO User (name, surname, birthDate, email, active, createdAt) " +
             "SELECT (:name, :surname, :birthDate, :email, :active, CURRENT_TIMESTAMP)", nativeQuery = true)
-    void createUser(@Param("name") String name,
+    User createUser(@Param("name") String name,
                     @Param("surname") String surname,
                     @Param("birthDate") java.time.LocalDate birthDate,
-                    @Param("email") String email,
-                    @Param("active") Boolean active);
-
-    // Каскадные операции: активация/деактивация пользователя и всех его карт
-    @Modifying
-    @Query(value = "UPDATE users u SET active = true WHERE u.id = :userId; " +
-            "UPDATE payment_cards pc SET active = true WHERE pc.user_id = :userId",
-            nativeQuery = true)
-    int activateUser(@Param("userId") Long userId);
+                    @Param("email") String email);
 
     @Modifying
-    @Query(value = "UPDATE users u SET active = false WHERE u.id = :userId; " +
-            "UPDATE payment_cards pc SET active = false WHERE pc.user_id = :userId",
-            nativeQuery = true)
-    int deactivateUser(@Param("userId") Long userId);
+    @Query(value = "INSERT INTO User (active) SELECT (:active)", nativeQuery = true)
+    boolean updateUserStatus(@Param("active") boolean active);
 
     // NAMED METHODS
     User findUserById(Long id);
@@ -45,7 +35,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // JPQL QUERIES
     @Modifying
     @Query("UPDATE User u SET u.name = :name, u.surname = :surname, u.birthDate = :birthDate, u.email = :email WHERE u.id = :id")
-    int updateUser(@Param("id") Long id,
+    User updateUser(@Param("id") Long id,
                    @Param("name") String name,
                    @Param("surname") String surname,
                    @Param("birthDate") LocalDate birthDate,
