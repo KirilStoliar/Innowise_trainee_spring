@@ -13,43 +13,47 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>, JpaSpecificationExecutor<PaymentCard> {
 
     // NATIVE SQL QUERIES
     @Modifying
-    @Query(value = "INSERT INTO payment_cards (user_id, number, holder, expiration_date, active, created_at)" +
-    "SELECT :userId, :number, :holder, :expirationDate, true, CURRENT_TIMESTAMP" +
-    "WHERE (SELECT COUNT(*) FROM users WHERE id = :userId AND active = true) = 1" +
-    "AND (SELECT COUNT(*) FROM payment_cards WHERE user_id = :userId AND active = true) < 5",
-            nativeQuery = true)
+    @Query(value = """
+    INSERT INTO payment_cards (user_id, number, holder, expiration_date, active, created_at)
+    VALUES (:userId, :number, :holder, :expirationDate, true, CURRENT_TIMESTAMP)
+    """, nativeQuery = true)
     int createCard(@Param("userId") Long userId,
-                   @Param("number") String number,
-                   @Param("holder") String holder,
-                   @Param("expirationDate") LocalDate expirationDate);
+                           @Param("number") String number,
+                           @Param("holder") String holder,
+                           @Param("expirationDate") LocalDate expirationDate);
+
+    default PaymentCard updatePaymentCard(Long id, String number, String holder, LocalDate expirationDate) {
+        return findById(id)
+                .map(card -> {
+                    card.setNumber(number);
+                    card.setHolder(holder);
+                    card.setExpirationDate(expirationDate);
+                    return save(card);
+                })
+                .orElse(null);
+    }
+
+    @Modifying
+    @Query(value = """
+    UPDATE PaymentCard SET active = :active, updated_at = CURRENT_TIMESTAMP
+    WHERE id = :id RETURNING *
+    """, nativeQuery = true)
+    PaymentCard updateCardStatus(@Param("id") Long id,
+                          @Param("active") boolean active);
 
     // NAMED METHODS
-    PaymentCard findById(long id);
+    Optional<PaymentCard> findByNumber(String number);
 
     // JPQL QUERIES
     @Query("SELECT pc FROM PaymentCard pc WHERE pc.user.id = :userId")
     List<PaymentCard> findAllByUserId(@Param("userId") Long userId);
-
-    @Modifying
-    @Query("UPDATE PaymentCard pc SET pc.number = :number, pc.holder = :holder, pc.expirationDate = :expirationDate WHERE pc.id = :id")
-    int updatePaymentCard(@Param("id") Long id,
-                          @Param("number") String number,
-                          @Param("holder") String holder,
-                          @Param("expirationDate") LocalDate expirationDate);
-
-    @Modifying
-    @Query("UPDATE PaymentCard pc SET pc.active = true WHERE pc.id = :id")
-    int activatePaymentCard(@Param("id") Long id);
-
-    @Modifying
-    @Query("UPDATE PaymentCard pc SET pc.active = false WHERE pc.id = :id")
-    int deactivatePaymentCard(@Param("id") Long id);
 
     // SPECIFICATION METHODS
     Page<PaymentCard> findAll(Specification<PaymentCard> spec, Pageable pageable);

@@ -6,7 +6,6 @@ plugins {
 
 group = 'com.stoliar'
 version = '0.0.1-SNAPSHOT'
-description = 'Innowise_trainee'
 
 java {
     toolchain {
@@ -31,23 +30,33 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // Database
-    implementation 'org.postgresql:postgresql:42.6.0'
+    runtimeOnly 'org.postgresql:postgresql'
 
     // Liquibase
-    implementation 'org.liquibase:liquibase-core:4.24.0'
+    implementation 'org.liquibase:liquibase-core'
 
     // Auditing
-    implementation 'org.springframework.data:spring-data-envers:3.2.0'
+    implementation 'org.springframework.data:spring-data-envers'
+
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
     // Тестирование
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'com.h2database:h2:2.2.224'
+    testImplementation 'com.h2database:h2'
+
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
 }

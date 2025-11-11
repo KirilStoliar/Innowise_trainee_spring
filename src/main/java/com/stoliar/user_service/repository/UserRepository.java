@@ -12,44 +12,51 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
     // NATIVE SQL QUERIES
     @Modifying
-    @Query(value = "INSERT INTO User (name, surname, birthDate, email, active, createdAt) " +
-            "SELECT (:name, :surname, :birthDate, :email, :active, CURRENT_TIMESTAMP)", nativeQuery = true)
-    void createUser(@Param("name") String name,
+    @Query(value = """
+    INSERT INTO users (name, surname, birth_date, email, active, created_at)
+    VALUES (:name, :surname, :birthDate, :email, true, CURRENT_TIMESTAMP)
+    """, nativeQuery = true)
+    int createUser(@Param("name") String name,
                     @Param("surname") String surname,
                     @Param("birthDate") java.time.LocalDate birthDate,
-                    @Param("email") String email,
-                    @Param("active") Boolean active);
+                    @Param("email") String email);
 
-    // Каскадные операции: активация/деактивация пользователя и всех его карт
-    @Modifying
-    @Query(value = "UPDATE users u SET active = true WHERE u.id = :userId; " +
-            "UPDATE payment_cards pc SET active = true WHERE pc.user_id = :userId",
-            nativeQuery = true)
-    int activateUser(@Param("userId") Long userId);
+    default User updateUser(Long id, String name, String surname, LocalDate birthDate, String email) {
+        return findById(id)
+                .map(user -> {
+                    user.setName(name);
+                    user.setSurname(surname);
+                    user.setBirthDate(birthDate);
+                    user.setEmail(email);
+                    user.setUpdatedAt(LocalDateTime.now());
+                    return save(user);
+                })
+                .orElse(null);
+    }
 
     @Modifying
-    @Query(value = "UPDATE users u SET active = false WHERE u.id = :userId; " +
-            "UPDATE payment_cards pc SET active = false WHERE pc.user_id = :userId",
+    @Query(value = """
+    UPDATE users SET active = :active, updated_at = CURRENT_TIMESTAMP
+    WHERE id = :id RETURNING *
+    """, nativeQuery = true)
+    User updateUserStatus(@Param("id") Long id,
+                          @Param("active") boolean active);
+
+    // Подсчет активных карт пользователя
+    @Query(value = "SELECT COUNT(*) FROM payment_cards WHERE user_id = :userId AND active = true",
             nativeQuery = true)
-    int deactivateUser(@Param("userId") Long userId);
+    int countActiveCardsByUserId(@Param("userId") Long userId);
 
     // NAMED METHODS
     User findUserById(Long id);
-
-    // JPQL QUERIES
-    @Modifying
-    @Query("UPDATE User u SET u.name = :name, u.surname = :surname, u.birthDate = :birthDate, u.email = :email WHERE u.id = :id")
-    int updateUser(@Param("id") Long id,
-                   @Param("name") String name,
-                   @Param("surname") String surname,
-                   @Param("birthDate") LocalDate birthDate,
-                   @Param("email") String email);
+    boolean existsByEmail(String email);
 
     // SPECIFICATION METHODS
 
