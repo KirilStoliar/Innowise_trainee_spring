@@ -48,6 +48,10 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>,
     PaymentCard updateCardStatus(@Param("id") Long id,
                           @Param("active") boolean active);
 
+    @Modifying
+    @Query(value = "INSERT INTO PaymentCard (active) SELECT (:active)", nativeQuery = true)
+    boolean updateCardStatus(@Param("active") boolean active);
+
     // NAMED METHODS
     Optional<PaymentCard> findByNumber(String number);
 
