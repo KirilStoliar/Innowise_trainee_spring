@@ -9,6 +9,8 @@ import com.stoliar.user_service.repository.UserRepository;
 import com.stoliar.user_service.specification.UserSpecifications;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,6 +43,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#id")
     public UserDTO getUserById(Long id) {
         log.info("Fetching user by id: {}", id);
         User user = userRepository.findUserById(id);
@@ -59,6 +62,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public UserDTO updateUser(Long id, UserDTO userDTO) {
         log.info("Updating user with id: {}", id);
         
@@ -91,16 +95,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public void updateUserStatus(Long id, boolean active) {
         log.info("Updating user status: {}", active);
-        User user = userRepository.updateUserStatus(id, active);
-        if (!user.getActive()) {
-            throw new CustomExceptions.DuplicateResourceException("User status can't update in " + active);
-        }
+        userRepository.updateUserStatus(id, active);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public void deleteUser(Long id) {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findUserById(id);

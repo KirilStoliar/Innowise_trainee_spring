@@ -11,6 +11,9 @@ import com.stoliar.user_service.repository.UserRepository;
 import com.stoliar.user_service.specification.PaymentCardSpecifications;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,9 +30,11 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     private final PaymentCardRepository paymentCardRepository;
     private final UserRepository userRepository;
     private final PaymentCardMapper paymentCardMapper;
+    private final CacheManager cacheManager;
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public PaymentCardDTO createPaymentCard(Long userId, PaymentCardCreateDTO paymentCardCreateDTO) {
         log.info("Creating payment card for user id: {}", userId);
         
@@ -100,6 +105,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#paymentCardDTO.userId")
     public PaymentCardDTO updateCard(Long cardId, PaymentCardDTO paymentCardDTO) {
         log.info("Updating card with id: {}", cardId);
         
@@ -131,20 +137,40 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    public void updateCardStatus(Long id, boolean active) {
+    public void updateCardStatus(Long cardId, boolean active) {
         log.info("Updating card status: {}", active);
-        PaymentCard card = paymentCardRepository.updateCardStatus(id, active);
-        if (!card.getActive()) {
-            throw new CustomExceptions.EntityNotFoundException("Card status can't update in " + active);
-        }
+
+        PaymentCard card = paymentCardRepository.findById(cardId)
+                .orElseThrow(() -> new CustomExceptions.EntityNotFoundException("Card not found with id: " + cardId));
+        Long userId = card.getUser().getId();
+
+        PaymentCard updatedCard = paymentCardRepository.updateCardStatus(cardId, active);
+
+        // Удаляем из кеша
+        evictUserCache(userId);
     }
 
     @Override
     @Transactional
     public void deleteCard(Long cardId) {
         log.info("Deleting card with id: {}", cardId);
+
         PaymentCard card = paymentCardRepository.findById(cardId)
                 .orElseThrow(() -> new CustomExceptions.EntityNotFoundException("Card not found with id: " + cardId));
-        paymentCardRepository.delete(card);
+        Long userId = card.getUser().getId();
+
+        PaymentCard deleteCard = paymentCardRepository.findById(cardId)
+                .orElseThrow(() -> new CustomExceptions.EntityNotFoundException("Card not found with id: " + cardId));
+        paymentCardRepository.delete(deleteCard);
+
+        // Удаляем из кеша
+        evictUserCache(userId);
+    }
+
+    private void evictUserCache(Long userId) {
+        Cache cache = cacheManager.getCache("users");
+        if (cache != null) {
+            cache.evict(userId);
+        }
     }
 }
