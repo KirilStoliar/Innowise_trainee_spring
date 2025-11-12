@@ -4,10 +4,10 @@ import com.stoliar.user_service.dto.PaymentCardCreateDTO;
 import com.stoliar.user_service.dto.PaymentCardDTO;
 import com.stoliar.user_service.entity.PaymentCard;
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.exception.CustomExceptions;
 import com.stoliar.user_service.mapper.PaymentCardMapper;
 import com.stoliar.user_service.repository.PaymentCardRepository;
 import com.stoliar.user_service.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -99,7 +99,7 @@ class PaymentCardServiceTest {
 
         when(userRepository.findUserById(userId)).thenReturn(null);
 
-        assertThrows(EntityNotFoundException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
+        assertThrows(CustomExceptions.EntityNotFoundException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
     }
 
     @Test
@@ -114,7 +114,7 @@ class PaymentCardServiceTest {
 
         when(userRepository.findUserById(userId)).thenReturn(user);
 
-        assertThrows(IllegalStateException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
+        assertThrows(CustomExceptions.BusinessRuleException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
     }
 
     @Test
@@ -130,7 +130,7 @@ class PaymentCardServiceTest {
         when(userRepository.findUserById(userId)).thenReturn(user);
         when(userRepository.countActiveCardsByUserId(userId)).thenReturn(5);
 
-        assertThrows(IllegalStateException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
+        assertThrows(CustomExceptions.BusinessRuleException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
     }
 
     @Test
@@ -150,7 +150,7 @@ class PaymentCardServiceTest {
         when(userRepository.countActiveCardsByUserId(userId)).thenReturn(2);
         when(paymentCardRepository.findByNumber("1234567890123456")).thenReturn(Optional.of(existingCard));
 
-        assertThrows(IllegalArgumentException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
+        assertThrows(CustomExceptions.DuplicateResourceException.class, () -> paymentCardService.createPaymentCard(userId, createDTO));
     }
 
     @Test

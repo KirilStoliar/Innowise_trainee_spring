@@ -3,10 +3,10 @@ package com.stoliar.user_service.service;
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.dto.UserDTO;
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.exception.CustomExceptions;
 import com.stoliar.user_service.mapper.UserMapper;
 import com.stoliar.user_service.repository.UserRepository;
 import com.stoliar.user_service.specification.UserSpecifications;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
         log.info("Creating new user with email: {}", userCreateDTO.getEmail());
 
         if (userRepository.existsByEmail(userCreateDTO.getEmail())) {
-            throw new IllegalArgumentException("User with email " + userCreateDTO.getEmail() + " already exists");
+            throw new CustomExceptions.DuplicateResourceException("User with email " + userCreateDTO.getEmail() + " already exists");
         }
 
         User user = userMapper.toEntity(userCreateDTO);
@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
         log.info("Fetching user by id: {}", id);
         User user = userRepository.findUserById(id);
         if (user == null) {
-            throw new EntityNotFoundException("User not found with id: " + id);
+            throw new CustomExceptions.DuplicateResourceException("User not found with id: " + id);
         }
         return userMapper.toDTO(user);
     }
@@ -64,13 +64,13 @@ public class UserServiceImpl implements UserService {
         
         User existingUser = userRepository.findUserById(id);
         if (existingUser == null) {
-            throw new EntityNotFoundException("User not found with id: " + id);
+            throw new CustomExceptions.DuplicateResourceException("User not found with id: " + id);
         }
 
         // Проверка уникальности почты
         if (!existingUser.getEmail().equals(userDTO.getEmail()) && 
             userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new IllegalArgumentException("Email " + userDTO.getEmail() + " already exists");
+            throw new CustomExceptions.DuplicateResourceException("Email " + userDTO.getEmail() + " already exists");
         }
 
         User updated = userRepository.updateUser(
@@ -95,7 +95,7 @@ public class UserServiceImpl implements UserService {
         log.info("Updating user status: {}", active);
         User user = userRepository.updateUserStatus(id, active);
         if (!user.getActive()) {
-            throw new EntityNotFoundException("User status can't update in " + active);
+            throw new CustomExceptions.DuplicateResourceException("User status can't update in " + active);
         }
     }
 
@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findUserById(id);
         if (user == null) {
-            throw new EntityNotFoundException("User not found with id: " + id);
+            throw new CustomExceptions.DuplicateResourceException("User not found with id: " + id);
         }
         userRepository.delete(user);
     }
