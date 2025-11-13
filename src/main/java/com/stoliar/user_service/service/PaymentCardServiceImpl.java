@@ -137,17 +137,16 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    public void updateCardStatus(Long cardId, boolean active) {
+    public PaymentCardDTO updateCardStatus(Long cardId, boolean active) {
         log.info("Updating card status: {}", active);
 
-        PaymentCard card = paymentCardRepository.findById(cardId)
-                .orElseThrow(() -> new CustomExceptions.EntityNotFoundException("Card not found with id: " + cardId));
-        Long userId = card.getUser().getId();
-
         PaymentCard updatedCard = paymentCardRepository.updateCardStatus(cardId, active);
+        Long userId = updatedCard.getUser().getId();
 
         // Удаляем из кеша
         evictUserCache(userId);
+
+        return paymentCardMapper.toDTO(updatedCard);
     }
 
     @Override

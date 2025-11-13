@@ -15,6 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -239,7 +244,6 @@ class PaymentCardServiceTest {
         updatedCard.setUser(user);
         updatedCard.setActive(false);
 
-        when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
         when(paymentCardRepository.updateCardStatus(cardId, false)).thenReturn(updatedCard);
         when(cacheManager.getCache("users")).thenReturn(cache);
 
@@ -267,6 +271,46 @@ class PaymentCardServiceTest {
 
         verify(paymentCardRepository).delete(card);
         verify(cacheManager).getCache("users");
-        // Не должно быть вызова cache.evict() если кэш null
+    }
+
+    @Test
+    void testGetAllCards_WithPagination_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        PaymentCard card = new PaymentCard();
+        card.setId(1L);
+        Page<PaymentCard> cardPage = new PageImpl<>(List.of(card));
+
+        PaymentCardDTO cardDTO = new PaymentCardDTO();
+        cardDTO.setId(1L);
+
+        when(paymentCardRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(cardPage);
+        when(paymentCardMapper.toDTO(card)).thenReturn(cardDTO);
+
+        Page<PaymentCardDTO> result = paymentCardService.getAllCards(pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void testUpdateCard_CardNotFound_ShouldThrowException() {
+        Long cardId = 999L;
+        PaymentCardDTO updateDTO = new PaymentCardDTO();
+
+        when(paymentCardRepository.findById(cardId)).thenReturn(Optional.empty());
+
+        assertThrows(CustomExceptions.EntityNotFoundException.class,
+                () -> paymentCardService.updateCard(cardId, updateDTO));
+    }
+
+    @Test
+    void testGetCardById_CardNotFound_ShouldThrowException() {
+        Long cardId = 999L;
+
+        when(paymentCardRepository.findById(cardId)).thenReturn(Optional.empty());
+
+        assertThrows(CustomExceptions.EntityNotFoundException.class,
+                () -> paymentCardService.getCardById(cardId));
     }
 }

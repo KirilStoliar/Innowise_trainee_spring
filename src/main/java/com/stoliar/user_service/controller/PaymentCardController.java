@@ -91,7 +91,7 @@ public class PaymentCardController {
     }
 
     @PatchMapping("/{cardId}/status")
-    public ResponseEntity<ApiResponse<Void>> updateCardStatus(
+    public ResponseEntity<ApiResponse<PaymentCardDTO>> updateCardStatus(
             @PathVariable Long userId,
             @PathVariable Long cardId,
             @RequestParam boolean active) {
@@ -101,9 +101,9 @@ public class PaymentCardController {
         // Проверяем, что карта принадлежит пользователю
         checkCardOwnership(userId, cardId);
             
-        paymentCardService.updateCardStatus(cardId, active);
+        PaymentCardDTO updatedCard = paymentCardService.updateCardStatus(cardId, active);
         String message = active ? "Card activated successfully" : "Card deactivated successfully";
-        return ResponseEntity.ok(ApiResponse.success(null, message));
+        return ResponseEntity.ok(ApiResponse.success(updatedCard, message));
     }
 
     @DeleteMapping("/{cardId}")

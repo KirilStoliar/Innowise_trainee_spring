@@ -1,6 +1,7 @@
 package com.stoliar.user_service.repository;
 
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.exception.CustomExceptions;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,13 +42,13 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
                 .orElse(null);
     }
 
-    @Modifying
-    @Query(value = """
-    UPDATE users SET active = :active, updated_at = CURRENT_TIMESTAMP
-    WHERE id = :id RETURNING *
-    """, nativeQuery = true)
-    User updateUserStatus(@Param("id") Long id,
-                          @Param("active") boolean active);
+    default User updateUserStatus(Long id, boolean active) {
+        return findById(id).map(user -> {
+            user.setActive(active);
+            user.setUpdatedAt(LocalDateTime.now());
+            return save(user);
+        }).orElseThrow(() -> new CustomExceptions.EntityNotFoundException("User not found with id: " + id));
+    }
 
     // Подсчет активных карт пользователя
     @Query(value = "SELECT COUNT(*) FROM payment_cards WHERE user_id = :userId AND active = true",

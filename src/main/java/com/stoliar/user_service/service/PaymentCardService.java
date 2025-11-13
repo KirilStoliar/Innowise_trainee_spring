@@ -13,6 +13,6 @@ public interface PaymentCardService {
     List<PaymentCardDTO> getAllCardsByUserId(Long userId);
     Page<PaymentCardDTO> getAllCards(Pageable pageable);
     PaymentCardDTO updateCard(Long cardId, PaymentCardDTO paymentCardDTO);
-    void updateCardStatus(Long id, boolean active);
+    PaymentCardDTO updateCardStatus(Long id, boolean active);
     void deleteCard(Long cardId);
 }

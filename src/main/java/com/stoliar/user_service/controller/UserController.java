@@ -81,15 +81,15 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<Void>> updateUserStatus(
+    public ResponseEntity<ApiResponse<UserDTO>> updateUserStatus(
             @PathVariable Long id, 
             @RequestParam boolean active) {
         
         log.info("Updating user status - id: {}, active: {}", id, active);
 
-        userService.updateUserStatus(id, active);
+        UserDTO updateUser = userService.updateUserStatus(id, active);
         String message = active ? "User activated successfully" : "User deactivated successfully";
-        return ResponseEntity.ok(ApiResponse.success(null, message));
+        return ResponseEntity.ok(ApiResponse.success(updateUser, message));
     }
 
     @DeleteMapping("/{id}")

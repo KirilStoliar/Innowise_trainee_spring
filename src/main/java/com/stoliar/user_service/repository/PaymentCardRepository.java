@@ -1,6 +1,7 @@
 package com.stoliar.user_service.repository;
 
 import com.stoliar.user_service.entity.PaymentCard;
+import com.stoliar.user_service.exception.CustomExceptions;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,13 +42,13 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>,
                 .orElse(null);
     }
 
-    @Modifying
-    @Query(value = """
-    UPDATE PaymentCard SET active = :active, updated_at = CURRENT_TIMESTAMP
-    WHERE id = :id RETURNING *
-    """, nativeQuery = true)
-    PaymentCard updateCardStatus(@Param("id") Long id,
-                          @Param("active") boolean active);
+    default PaymentCard updateCardStatus(Long id, boolean active) {
+        return findById(id).map(card -> {
+            card.setActive(active);
+            card.setUpdatedAt(LocalDateTime.now());
+            return save(card);
+        }).orElseThrow(() -> new CustomExceptions.EntityNotFoundException("Card not found with id: " + id));
+    }
 
     // NAMED METHODS
     Optional<PaymentCard> findByNumber(String number);

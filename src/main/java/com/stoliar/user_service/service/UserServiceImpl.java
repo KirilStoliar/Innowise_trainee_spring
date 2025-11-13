@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
         log.info("Fetching user by id: {}", id);
         User user = userRepository.findUserById(id);
         if (user == null) {
-            throw new CustomExceptions.DuplicateResourceException("User not found with id: " + id);
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
         }
         return userMapper.toDTO(user);
     }
@@ -96,9 +96,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     @CacheEvict(value = "users", key = "#id")
-    public void updateUserStatus(Long id, boolean active) {
+    public UserDTO updateUserStatus(Long id, boolean active) {
         log.info("Updating user status: {}", active);
-        userRepository.updateUserStatus(id, active);
+        User updateUser = userRepository.updateUserStatus(id, active);
+        return userMapper.toDTO(updateUser);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class UserServiceImpl implements UserService {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findUserById(id);
         if (user == null) {
-            throw new CustomExceptions.DuplicateResourceException("User not found with id: " + id);
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
         }
         userRepository.delete(user);
     }

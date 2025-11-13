@@ -23,7 +23,7 @@ class UserEntityTest {
     private User createTestUser() {
         User user = new User();
         user.setName("John");
-        user.setSurname("Doe");
+        user.setSurname("Doe");gi
         user.setBirthDate(LocalDate.of(1990, 1, 1));
         user.setEmail("john.doe@example.com");
         user.setActive(true);
