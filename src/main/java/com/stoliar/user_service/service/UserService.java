@@ -10,7 +10,7 @@ public interface UserService {
     UserDTO getUserById(Long id);
     Page<UserDTO> getAllUsers(Pageable pageable);
     UserDTO updateUser(Long id, UserDTO userDTO);
-    void updateUserStatus(Long id, boolean active);
+    UserDTO updateUserStatus(Long id, boolean active);
     void deleteUser(Long id);
     Page<UserDTO> getUsersWithFilters(String firstName, String surname, Pageable pageable);
 }
