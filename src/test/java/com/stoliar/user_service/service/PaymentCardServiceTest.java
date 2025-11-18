@@ -41,6 +41,7 @@ class PaymentCardServiceTest {
 
     @Test
     void testCreatePaymentCard_ValidData_ShouldReturnCardDTO() {
+        // Given
         Long userId = 1L;
         PaymentCardCreateDTO createDTO = new PaymentCardCreateDTO();
         createDTO.setNumber("1234567890123456");
@@ -74,8 +75,10 @@ class PaymentCardServiceTest {
         )).thenReturn(card);
         when(paymentCardMapper.toDTO(card)).thenReturn(expectedDTO);
 
+        // When
         PaymentCardDTO result = paymentCardService.createPaymentCard(userId, createDTO);
 
+        // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("1234567890123456", result.getNumber());
@@ -90,6 +93,7 @@ class PaymentCardServiceTest {
 
     @Test
     void testUpdateCard_ValidData_ShouldReturnUpdatedCardDTO() {
+        // Given
         Long cardId = 1L;
         Long userId = 1L;
 
@@ -124,8 +128,10 @@ class PaymentCardServiceTest {
         when(paymentCardRepository.save(any(PaymentCard.class))).thenReturn(updatedCard);
         when(paymentCardMapper.toDTO(updatedCard)).thenReturn(expectedDTO);
 
+        // When
         PaymentCardDTO result = paymentCardService.updateCard(cardId, updateDTO);
 
+        // Then
         assertNotNull(result);
         assertEquals(cardId, result.getId());
         assertEquals("9999888877776666", result.getNumber());
@@ -133,6 +139,7 @@ class PaymentCardServiceTest {
 
     @Test
     void testUpdateCardStatus_WhenCardExists_ShouldUpdateStatus() {
+        // Given
         Long cardId = 1L;
         User user = new User();
         user.setId(1L);
@@ -156,8 +163,10 @@ class PaymentCardServiceTest {
         when(paymentCardRepository.save(any(PaymentCard.class))).thenReturn(updatedCard);
         when(paymentCardMapper.toDTO(updatedCard)).thenReturn(expectedDTO);
 
+        // When
         PaymentCardDTO result = paymentCardService.updateCardStatus(cardId, false);
 
+        // Then
         assertNotNull(result);
         assertFalse(result.getActive());
 
@@ -166,6 +175,7 @@ class PaymentCardServiceTest {
 
     @Test
     void testGetCardById_WhenCardExists_ShouldReturnCardDTO() {
+        // Given
         Long cardId = 1L;
         PaymentCard card = new PaymentCard();
         card.setId(cardId);
@@ -176,14 +186,17 @@ class PaymentCardServiceTest {
         when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
         when(paymentCardMapper.toDTO(card)).thenReturn(expectedDTO);
 
+        // When
         PaymentCardDTO result = paymentCardService.getCardById(cardId);
 
+        // Then
         assertNotNull(result);
         assertEquals(cardId, result.getId());
     }
 
     @Test
     void testGetAllCardsByUserId_ShouldReturnCardDTOs() {
+        // Given
         Long userId = 1L;
         PaymentCard card = new PaymentCard();
         card.setId(1L);
@@ -194,8 +207,10 @@ class PaymentCardServiceTest {
         when(paymentCardRepository.findAllByUserId(userId)).thenReturn(List.of(card));
         when(paymentCardMapper.toDTOList(List.of(card))).thenReturn(List.of(cardDTO));
 
+        // When
         List<PaymentCardDTO> result = paymentCardService.getAllCardsByUserId(userId);
 
+        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(1L, result.get(0).getId());
@@ -203,6 +218,7 @@ class PaymentCardServiceTest {
 
     @Test
     void testDeleteCard_WhenCardExists_ShouldDeleteCard() {
+        // Given
         Long cardId = 1L;
         User user = new User();
         user.setId(1L);
@@ -213,13 +229,16 @@ class PaymentCardServiceTest {
 
         when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
 
+        // When
         paymentCardService.deleteCard(cardId);
 
+        // Then
         verify(paymentCardRepository).delete(card);
     }
 
     @Test
     void testGetAllCards_ShouldReturnPage() {
+        // Given
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
 
         PaymentCard card = new PaymentCard();
@@ -235,9 +254,11 @@ class PaymentCardServiceTest {
                 .thenReturn(cardPage);
         when(paymentCardMapper.toDTO(card)).thenReturn(cardDTO);
 
+        // When
         org.springframework.data.domain.Page<PaymentCardDTO> result =
                 paymentCardService.getAllCards(pageable);
 
+        // Then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
     }

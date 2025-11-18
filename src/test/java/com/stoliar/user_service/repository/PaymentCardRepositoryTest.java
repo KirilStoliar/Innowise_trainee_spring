@@ -2,12 +2,10 @@ package com.stoliar.user_service.repository;
 
 import com.stoliar.user_service.entity.PaymentCard;
 import com.stoliar.user_service.entity.User;
-import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +27,13 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
     @Autowired
     private PaymentCardRepository paymentCardRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
     @Test
     @Transactional
     void testCreateCard_ShouldCreateAndReturnCard() {
+        // Given
         User user = createTestUser();
 
+        // When
         PaymentCard createdCard = paymentCardRepository.createCard(
                 user.getId(),
                 "1234567890123456",
@@ -44,6 +41,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
                 LocalDate.now().plusYears(2)
         );
 
+        // Then
         assertNotNull(createdCard);
         assertNotNull(createdCard.getId());
         assertEquals("1234567890123456", createdCard.getNumber());
@@ -60,6 +58,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
     @Test
     @Transactional
     void testSave_ShouldUpdateCardData() {
+        // Given
         User user = createTestUser();
 
         // Создаем через нативный запрос
@@ -71,7 +70,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
         );
         entityManager.flush();
 
-        // Очищаем контекст и загружаем заново как managed entity
+        // When - Очищаем контекст и загружаем заново как managed entity
         entityManager.clear();
         PaymentCard managedCard = paymentCardRepository.findById(card.getId()).orElseThrow();
 
@@ -80,11 +79,11 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
         managedCard.setHolder("New Holder");
 
         // Сохраняем изменения
-        PaymentCard updatedCard = paymentCardRepository.save(managedCard);
+        paymentCardRepository.save(managedCard);
         entityManager.flush();
         entityManager.clear();
 
-        // Проверяем в БД
+        // Then - Проверяем в БД
         PaymentCard dbCard = paymentCardRepository.findById(card.getId()).orElseThrow();
         assertEquals("9999888877776666", dbCard.getNumber());
         assertEquals("New Holder", dbCard.getHolder());
@@ -93,6 +92,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
     @Test
     @Transactional
     void testSave_ShouldUpdateCardStatus() {
+        // Given
         User user = createTestUser();
 
         PaymentCard card = paymentCardRepository.createCard(
@@ -104,19 +104,21 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
         entityManager.flush();
         entityManager.clear();
 
+        // When
         PaymentCard managedCard = paymentCardRepository.findById(card.getId()).orElseThrow();
         managedCard.setActive(false);
-
         paymentCardRepository.save(managedCard);
         entityManager.flush();
         entityManager.clear();
 
+        // Then
         PaymentCard dbCard = paymentCardRepository.findById(card.getId()).orElseThrow();
         assertFalse(dbCard.getActive());
     }
 
     @Test
     void testFindById_WhenCardExists_ShouldReturnCard() {
+        // Given
         User user = createTestUser();
 
         PaymentCard card = paymentCardRepository.createCard(
@@ -126,8 +128,10 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
                 LocalDate.now().plusYears(2)
         );
 
+        // When
         Optional<PaymentCard> foundCard = paymentCardRepository.findById(card.getId());
 
+        // Then
         assertTrue(foundCard.isPresent());
         assertEquals(card.getId(), foundCard.get().getId());
         assertEquals("1234567890123456", foundCard.get().getNumber());
@@ -135,6 +139,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testFindByNumber_WhenCardExists_ShouldReturnCard() {
+        // Given
         User user = createTestUser();
 
         paymentCardRepository.createCard(
@@ -144,14 +149,17 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
                 LocalDate.now().plusYears(2)
         );
 
+        // When
         Optional<PaymentCard> foundCard = paymentCardRepository.findByNumber("1234567890123456");
 
+        // Then
         assertTrue(foundCard.isPresent());
         assertEquals("1234567890123456", foundCard.get().getNumber());
     }
 
     @Test
     void testFindAllByUserId_ShouldReturnUserCards() {
+        // Given
         User user1 = createTestUser();
         User user2 = createTestUser();
 
@@ -159,14 +167,17 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
         paymentCardRepository.createCard(user1.getId(), "2222222222222222", "Holder2", LocalDate.now().plusYears(3));
         paymentCardRepository.createCard(user2.getId(), "3333333333333333", "Holder3", LocalDate.now().plusYears(4));
 
+        // When
         List<PaymentCard> user1Cards = paymentCardRepository.findAllByUserId(user1.getId());
 
+        // Then
         assertEquals(2, user1Cards.size());
     }
 
     @Test
     @Transactional
     void testCreateCard_WithDuplicateNumber_ShouldThrowException() {
+        // Given
         User user = createTestUser();
 
         paymentCardRepository.createCard(
@@ -177,7 +188,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
         );
         entityManager.flush();
 
-        // Пытаемся создать карту с тем же номером
+        // When & Then - Пытаемся создать карту с тем же номером
         assertThrows(Exception.class, () -> {
             paymentCardRepository.createCard(
                     user.getId(),
@@ -191,6 +202,7 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testDelete_ShouldRemoveCard() {
+        // Given
         User user = createTestUser();
 
         PaymentCard card = paymentCardRepository.createCard(
@@ -200,10 +212,12 @@ class PaymentCardRepositoryTest extends AbstractJpaTest {
                 LocalDate.now().plusYears(2)
         );
 
+        // When
         paymentCardRepository.deleteById(card.getId());
         entityManager.flush();
         entityManager.clear();
 
+        // Then
         Optional<PaymentCard> deletedCard = paymentCardRepository.findById(card.getId());
         assertFalse(deletedCard.isPresent());
     }

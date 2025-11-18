@@ -26,13 +26,18 @@ class UserRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testCreateUser_ShouldCreateAndReturnUser() {
+        // Given
+        String email = "john.doe" + UUID.randomUUID() + "@example.com";
+
+        // When
         User createdUser = userRepository.createUser(
                 "John",
                 "Doe",
                 LocalDate.of(1990, 1, 1),
-                "john.doe" + UUID.randomUUID() + "@example.com"
+                email
         );
 
+        // Then
         assertNotNull(createdUser);
         assertNotNull(createdUser.getId());
         assertEquals("John", createdUser.getName());
@@ -48,7 +53,7 @@ class UserRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testSave_ShouldUpdateUserData() {
-        // Создаем пользователя через нативный запрос
+        // Given - Создаем пользователя через нативный запрос
         User user = userRepository.createUser(
                 "John",
                 "Doe",
@@ -56,22 +61,18 @@ class UserRepositoryTest extends AbstractJpaTest {
                 "john.doe" + UUID.randomUUID() + "@example.com"
         );
         entityManager.flush();
-
-        // Очищаем контекст и загружаем заново как managed entity
         entityManager.clear();
-        User managedUser = userRepository.findUserById(user.getId());
 
-        // Обновляем данные
+        // When
+        User managedUser = userRepository.findUserById(user.getId());
         managedUser.setName("Jane");
         managedUser.setSurname("Smith");
         managedUser.setEmail("jane.smith" + UUID.randomUUID() + "@example.com");
-
-        // Сохраняем изменения
-        User updatedUser = userRepository.save(managedUser);
+        userRepository.save(managedUser);
         entityManager.flush();
         entityManager.clear();
 
-        // Проверяем в БД
+        // Then - Проверяем в БД
         User dbUser = userRepository.findUserById(user.getId());
         assertEquals("Jane", dbUser.getName());
         assertEquals("Smith", dbUser.getSurname());
@@ -79,6 +80,7 @@ class UserRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testSave_ShouldUpdateUserStatus() {
+        // Given
         User user = userRepository.createUser(
                 "John",
                 "Doe",
@@ -88,6 +90,7 @@ class UserRepositoryTest extends AbstractJpaTest {
         entityManager.flush();
         entityManager.clear();
 
+        // When
         User managedUser = userRepository.findUserById(user.getId());
         managedUser.setActive(false);
 
@@ -95,12 +98,14 @@ class UserRepositoryTest extends AbstractJpaTest {
         entityManager.flush();
         entityManager.clear();
 
+        // Then
         User dbUser = userRepository.findUserById(user.getId());
         assertFalse(dbUser.getActive());
     }
 
     @Test
     void testFindUserById_WhenUserExists_ShouldReturnUser() {
+        // Given
         User user = userRepository.createUser(
                 "John",
                 "Doe",
@@ -108,8 +113,10 @@ class UserRepositoryTest extends AbstractJpaTest {
                 "john.doe" + UUID.randomUUID() + "@example.com"
         );
 
+        // When
         User foundUser = userRepository.findUserById(user.getId());
 
+        // Then
         assertNotNull(foundUser);
         assertEquals(user.getId(), foundUser.getId());
         assertEquals("John", foundUser.getName());
@@ -117,8 +124,8 @@ class UserRepositoryTest extends AbstractJpaTest {
 
     @Test
     void testExistsByEmail_WhenEmailExists_ShouldReturnTrue() {
+        // Given
         String email = "test" + UUID.randomUUID() + "@example.com";
-
         userRepository.createUser(
                 "John",
                 "Doe",
@@ -126,12 +133,16 @@ class UserRepositoryTest extends AbstractJpaTest {
                 email
         );
 
+        // When
         boolean exists = userRepository.existsByEmail(email);
+
+        // Then
         assertTrue(exists);
     }
 
     @Test
     void testCountActiveCardsByUserId_ShouldReturnCorrectCount() {
+        // Given
         User user = userRepository.createUser(
                 "John",
                 "Doe",
@@ -170,12 +181,16 @@ class UserRepositoryTest extends AbstractJpaTest {
 
         entityManager.flush();
 
+        // When
         int activeCardCount = userRepository.countActiveCardsByUserId(user.getId());
+
+        // Then
         assertEquals(2, activeCardCount); // Две активные карты
     }
 
     @Test
     void testCreateUser_WithDuplicateEmail_ShouldThrowException() {
+        // Given
         String email = "duplicate" + UUID.randomUUID() + "@example.com";
 
         // Создаем первого пользователя
@@ -187,7 +202,7 @@ class UserRepositoryTest extends AbstractJpaTest {
         );
         entityManager.flush();
 
-        // Пытаемся создать пользователя с тем же email
+        // When & Then - Пытаемся создать пользователя с тем же email
         assertThrows(Exception.class, () -> {
             userRepository.createUser(
                     "Jane",

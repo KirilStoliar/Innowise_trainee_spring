@@ -43,6 +43,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Given - очистка базы и подготовка тестовых данных
         paymentCardRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -57,12 +58,14 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createUser_ValidData_ShouldReturnCreated() throws Exception {
+        // Given
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("John");
         createDTO.setSurname("Doe");
         createDTO.setBirthDate(LocalDate.of(1990, 1, 1));
         createDTO.setEmail("john.doe@example.com");
 
+        // When & Then
         mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createDTO)))
@@ -74,6 +77,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getUserById_WhenUserExists_ShouldReturnUser() throws Exception {
+        // Given - testUser уже создан в setUp
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
@@ -83,12 +89,17 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getUserById_WhenUserNotExists_ShouldReturnNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{id}", 999L))
+        // Given - несуществующий userId
+        Long nonExistentUserId = 999L;
+
+        // When & Then
+        mockMvc.perform(get("/api/v1/users/{id}", nonExistentUserId))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void updateUser_ValidData_ShouldReturnUpdatedUser() throws Exception {
+        // Given
         String updatedJson = """
             {
                 "name": "Updated",
@@ -98,6 +109,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
             }
             """;
 
+        // When & Then
         mockMvc.perform(put("/api/v1/users/{id}", testUser.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updatedJson))
@@ -108,6 +120,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getAllUsers_ShouldReturnPaginatedUsers() throws Exception {
+        // Given - testUser уже создан в setUp
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users")
                 .param("page", "0")
                 .param("size", "10"))
@@ -118,12 +133,14 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createUser_WithInvalidData_ShouldReturnBadRequest() throws Exception {
+        // Given
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("");
         createDTO.setSurname("");
         createDTO.setBirthDate(LocalDate.now().plusDays(1)); // будущая дата рождения
         createDTO.setEmail("invalid-email"); // невалидный email
 
+        // When & Then
         mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDTO)))
@@ -132,12 +149,14 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createUser_WithDuplicateEmail_ShouldReturnConflict() throws Exception {
+        // Given - дублирующий email существующего пользователя
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("Duplicate");
         createDTO.setSurname("User");
         createDTO.setBirthDate(LocalDate.of(1990, 1, 1));
         createDTO.setEmail("integration.test@example.com"); // дублирующий email
 
+        // When & Then
         mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDTO)))
@@ -146,6 +165,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void updateUserStatus_ShouldUpdateStatus() throws Exception {
+        // Given - testUser уже создан в setUp
+
+        // When & Then
         mockMvc.perform(patch("/api/v1/users/{id}/status", testUser.getId())
                         .param("active", "false"))
                 .andExpect(status().isOk())
@@ -156,6 +178,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getUsersWithFilters_ShouldReturnFilteredUsers() throws Exception {
+        // Given - testUser уже создан в setUp
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users/filter")
                         .param("firstName", "Integration")
                         .param("surname", "Test")
@@ -168,6 +193,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deleteUser_ShouldDeleteUser() throws Exception {
+        // Given - testUser уже создан в setUp
+
+        // When & Then
         mockMvc.perform(delete("/api/v1/users/{id}", testUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))

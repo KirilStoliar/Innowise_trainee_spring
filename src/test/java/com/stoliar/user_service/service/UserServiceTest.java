@@ -41,6 +41,7 @@ class UserServiceTest {
 
     @Test
     void testCreateUser_ValidData_ShouldReturnUserDTO() {
+        // Given
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("John");
         createDTO.setSurname("Doe");
@@ -67,8 +68,10 @@ class UserServiceTest {
         )).thenReturn(user);
         when(userMapper.toDTO(user)).thenReturn(expectedDTO);
 
+        // When
         UserDTO result = userService.createUser(createDTO);
 
+        // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("John", result.getName());
@@ -77,17 +80,20 @@ class UserServiceTest {
 
     @Test
     void testCreateUser_DuplicateEmail_ShouldThrowException() {
+        // Given
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setEmail("duplicate@example.com");
 
         when(userRepository.existsByEmail("duplicate@example.com")).thenReturn(true);
 
+        // When & Then
         assertThrows(DuplicateResourceException.class,
                 () -> userService.createUser(createDTO));
     }
 
     @Test
     void testUpdateUser_ValidData_ShouldReturnUpdatedUserDTO() {
+        // Given
         Long userId = 1L;
         UserDTO updateDTO = new UserDTO();
         updateDTO.setName("Jane");
@@ -116,8 +122,10 @@ class UserServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
         when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
 
+        // When
         UserDTO result = userService.updateUser(userId, updateDTO);
 
+        // Then
         assertNotNull(result);
         assertEquals(userId, result.getId());
         assertEquals("Jane", result.getName());
@@ -125,6 +133,7 @@ class UserServiceTest {
 
     @Test
     void testUpdateUserStatus_WhenUserExists_ShouldUpdateStatus() {
+        // Given
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
@@ -142,14 +151,17 @@ class UserServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
         when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
 
+        // When
         UserDTO result = userService.updateUserStatus(userId, false);
 
+        // Then
         assertNotNull(result);
         assertFalse(result.getActive());
     }
 
     @Test
     void testGetUserById_WhenUserExists_ShouldReturnUserDTO() {
+        // Given
         Long userId = 1L;
         User user = new User();
         user.setId(userId);
@@ -160,14 +172,17 @@ class UserServiceTest {
         when(userRepository.findUserById(userId)).thenReturn(user);
         when(userMapper.toDTO(user)).thenReturn(expectedDTO);
 
+        // When
         UserDTO result = userService.getUserById(userId);
 
+        // Then
         assertNotNull(result);
         assertEquals(userId, result.getId());
     }
 
     @Test
     void testGetAllUsers_ShouldReturnPage() {
+        // Given
         Pageable pageable = PageRequest.of(0, 10);
         User user = new User();
         user.setId(1L);
@@ -179,15 +194,17 @@ class UserServiceTest {
         when(userRepository.findAll(pageable)).thenReturn(userPage);
         when(userMapper.toDTO(user)).thenReturn(userDTO);
 
+        // When
         Page<UserDTO> result = userService.getAllUsers(pageable);
 
+        // Then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
     }
 
     @Test
     void testGetUsersWithFilters_ShouldReturnFilteredUsers() {
-
+        // Given
         Pageable pageable = PageRequest.of(0, 10);
         String firstName = "John";
         String surname = "Doe";
@@ -202,8 +219,10 @@ class UserServiceTest {
         when(userRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(userPage);
         when(userMapper.toDTO(user)).thenReturn(userDTO);
 
+        // When
         Page<UserDTO> result = userService.getUsersWithFilters(firstName, surname, pageable);
 
+        // Then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         verify(userRepository).findAll(any(Specification.class), eq(pageable));
@@ -211,20 +230,23 @@ class UserServiceTest {
 
     @Test
     void testDeleteUser_WhenUserExists_ShouldDeleteUser() {
-
+        // Given
         Long userId = 1L;
         User user = new User();
         user.setId(userId);
 
         when(userRepository.findUserById(userId)).thenReturn(user);
 
+        // When
         userService.deleteUser(userId);
 
+        // Then
         verify(userRepository).delete(user);
     }
 
     @Test
     void testUpdateUser_DuplicateEmail_ShouldThrowException() {
+        // Given
         Long userId = 1L;
         UserDTO updateDTO = new UserDTO();
         updateDTO.setName("Updated");
@@ -237,12 +259,14 @@ class UserServiceTest {
         when(userRepository.findUserById(userId)).thenReturn(existingUser);
         when(userRepository.existsByEmail("duplicate@example.com")).thenReturn(true);
 
+        // When & Then
         assertThrows(DuplicateResourceException.class,
                 () -> userService.updateUser(userId, updateDTO));
     }
 
     @Test
     void testGetUsersWithFilters_WithNullParameters_ShouldReturnAllUsers() {
+        //Given
         Pageable pageable = PageRequest.of(0, 10);
 
         User user = new User();
@@ -254,8 +278,10 @@ class UserServiceTest {
         when(userRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(userPage);
         when(userMapper.toDTO(user)).thenReturn(userDTO);
 
+        // When
         Page<UserDTO> result = userService.getUsersWithFilters(null, null, pageable);
 
+        // Then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
     }

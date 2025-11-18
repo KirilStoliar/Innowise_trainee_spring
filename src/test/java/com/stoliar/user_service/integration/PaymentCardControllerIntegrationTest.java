@@ -46,6 +46,7 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Given - подготовка тестовых данных
         testUser = new User();
         testUser.setName("Card");
         testUser.setSurname("Test");
@@ -65,11 +66,13 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createPaymentCard_ValidData_ShouldReturnCreated() throws Exception {
+        // Given
         PaymentCardCreateDTO createDTO = new PaymentCardCreateDTO();
         createDTO.setNumber("5555555555554444");
         createDTO.setHolder("John Doe");
         createDTO.setExpirationDate(LocalDate.now().plusYears(2));
 
+        // When & Then
         mockMvc.perform(post("/api/v1/users/{userId}/payment-cards", testUser.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createDTO)))
@@ -81,6 +84,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getCardById_WhenCardExists_ShouldReturnCard() throws Exception {
+        // Given - testCard уже создан в setUp
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{userId}/payment-cards/{cardId}",
                 testUser.getId(), testCard.getId()))
                 .andExpect(status().isOk())
@@ -91,6 +97,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getAllCardsByUserId_ShouldReturnUserCards() throws Exception {
+        // Given - testCard уже создан в setUp
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{userId}/payment-cards", testUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
@@ -99,6 +108,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void updateCardStatus_ShouldUpdateStatus() throws Exception {
+        // Given - testCard уже создан в setUp
+
+        // When & Then
         mockMvc.perform(patch("/api/v1/users/{userId}/payment-cards/{cardId}/status",
                         testUser.getId(), testCard.getId())
                         .param("active", "false"))
@@ -112,6 +124,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deleteCard_ShouldDeleteCard() throws Exception {
+        // Given - testCard уже создан в setUp
+
+        // When & Then
         mockMvc.perform(delete("/api/v1/users/{userId}/payment-cards/{cardId}",
                 testUser.getId(), testCard.getId()))
                 .andExpect(status().isOk())
@@ -120,11 +135,14 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
     }
     @Test
     void createPaymentCard_WithInvalidData_ShouldReturnBadRequest() throws Exception {
+        // Given
+
         PaymentCardCreateDTO createDTO = new PaymentCardCreateDTO();
         createDTO.setNumber("123");
         createDTO.setHolder("");
         createDTO.setExpirationDate(LocalDate.now().minusDays(1));
 
+        // When & Then
         mockMvc.perform(post("/api/v1/users/{userId}/payment-cards", testUser.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDTO)))
@@ -133,13 +151,18 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getCardById_WhenCardNotExists_ShouldReturnNotFound() throws Exception {
+        // Given - несуществующий cardId
+        Long nonExistentCardId = 999L;
+
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{userId}/payment-cards/{cardId}",
-                        testUser.getId(), 999L))
+                        testUser.getId(), nonExistentCardId))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void updateCard_ValidData_ShouldReturnUpdatedCard() throws Exception {
+        // Given
         String updateJson = """
             {
                 "id": %d,
@@ -151,6 +174,7 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
             }
             """.formatted(testCard.getId(), testUser.getId(), LocalDate.now().plusYears(3));
 
+        // When & Then
         mockMvc.perform(put("/api/v1/users/{userId}/payment-cards/{cardId}",
                         testUser.getId(), testCard.getId())
                         .contentType(MediaType.APPLICATION_JSON)

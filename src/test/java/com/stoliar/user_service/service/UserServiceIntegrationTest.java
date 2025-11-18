@@ -28,28 +28,33 @@ class UserServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void testCreateAndRetrieveUser_Integration() {
-
+        // Given
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("Integration");
         createDTO.setSurname("Test");
         createDTO.setBirthDate(LocalDate.of(1990, 1, 1));
         createDTO.setEmail("integration@test.com");
 
+        // When
         UserDTO createdUser = userService.createUser(createDTO);
 
+        // Then
         assertNotNull(createdUser.getId());
         assertEquals("Integration", createdUser.getName());
         assertEquals("integration@test.com", createdUser.getEmail());
         assertTrue(createdUser.getActive());
 
+        // When - дополнительная проверка получения пользователя
         UserDTO retrievedUser = userService.getUserById(createdUser.getId());
+
+        // Then
         assertEquals(createdUser.getId(), retrievedUser.getId());
         assertEquals(createdUser.getName(), retrievedUser.getName());
     }
 
     @Test
     void testUpdateUser_Integration() {
-
+        // Given
         User user = new User();
         user.setName("Old");
         user.setSurname("Name");
@@ -64,8 +69,10 @@ class UserServiceIntegrationTest extends AbstractIntegrationTest {
         updateDTO.setBirthDate(LocalDate.of(1995, 5, 5));
         updateDTO.setEmail("new@test.com");
 
+        // When
         UserDTO updatedUser = userService.updateUser(savedUser.getId(), updateDTO);
 
+        // Then
         assertEquals("New", updatedUser.getName());
         assertEquals("new@test.com", updatedUser.getEmail());
     }
