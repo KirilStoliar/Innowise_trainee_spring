@@ -1,0 +1,43 @@
+# Профиль для интеграционных тестов
+spring:
+  config:
+    activate:
+      on-profile: integration-test
+
+  # НЕ указываем datasource - его предоставит TestContainers через @DynamicPropertySource
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: true
+        use_sql_comments: true
+    show-sql: true
+
+  liquibase:
+    enabled: false
+
+  data:
+    redis:
+      enabled: false
+
+  cache:
+    type: none
+
+  # Увеличиваем таймауты подключения к БД для тестов
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 60000
+
+logging:
+  level:
+    com.stoliar.user_service: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.testcontainers: INFO
+    org.postgresql: INFO

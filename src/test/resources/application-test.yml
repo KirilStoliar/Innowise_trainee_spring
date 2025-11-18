@@ -1,24 +1,30 @@
+# Профиль для обычных unit-тестов с H2
 spring:
+  config:
+    activate:
+      on-profile: test
+  
   datasource:
-    url: jdbc:tc:postgresql:15-alpine:///testdb
-    username: test
-    password: test
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ''
+
   jpa:
     hibernate:
       ddl-auto: create-drop
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        show_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
+    show-sql: true
+  
   liquibase:
     enabled: false
-#  data:
-#    redis:
-#      host: localhost
-#      timeout: 2000ms
-#      port: 6379
+  
+  data:
+    redis:
+      enabled: false
+  
   cache:
     type: none
 
@@ -26,4 +32,3 @@ logging:
   level:
     com.stoliar.user_service: DEBUG
     org.hibernate.SQL: DEBUG
-    org.testcontainers: INFO

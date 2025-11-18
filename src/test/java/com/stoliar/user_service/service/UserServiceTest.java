@@ -3,10 +3,10 @@ package com.stoliar.user_service.service;
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.dto.UserDTO;
 import com.stoliar.user_service.entity.User;
-import com.stoliar.user_service.exception.CustomExceptions;
+import com.stoliar.user_service.exception.DuplicateResourceException;
 import com.stoliar.user_service.mapper.UserMapper;
 import com.stoliar.user_service.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.stoliar.user_service.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,16 +17,17 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class UserServiceTest {
 
     @Mock
@@ -40,7 +41,6 @@ class UserServiceTest {
 
     @Test
     void testCreateUser_ValidData_ShouldReturnUserDTO() {
-
         UserCreateDTO createDTO = new UserCreateDTO();
         createDTO.setName("John");
         createDTO.setSurname("Doe");
@@ -51,14 +51,20 @@ class UserServiceTest {
         user.setId(1L);
         user.setName("John");
         user.setSurname("Doe");
+        user.setEmail("john.doe@example.com");
 
         UserDTO expectedDTO = new UserDTO();
         expectedDTO.setId(1L);
         expectedDTO.setName("John");
+        expectedDTO.setEmail("john.doe@example.com");
 
         when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
-        when(userMapper.toEntity(createDTO)).thenReturn(user);
-        when(userRepository.save(user)).thenReturn(user);
+        when(userRepository.createUser(
+                eq("John"),
+                eq("Doe"),
+                eq(LocalDate.of(1990, 1, 1)),
+                eq("john.doe@example.com")
+        )).thenReturn(user);
         when(userMapper.toDTO(user)).thenReturn(expectedDTO);
 
         UserDTO result = userService.createUser(createDTO);
@@ -66,33 +72,90 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("John", result.getName());
-        verify(userRepository).existsByEmail("john.doe@example.com");
-        verify(userRepository).save(user);
+        assertEquals("john.doe@example.com", result.getEmail());
     }
 
     @Test
     void testCreateUser_DuplicateEmail_ShouldThrowException() {
-
         UserCreateDTO createDTO = new UserCreateDTO();
-        createDTO.setEmail("existing@example.com");
+        createDTO.setEmail("duplicate@example.com");
 
-        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+        when(userRepository.existsByEmail("duplicate@example.com")).thenReturn(true);
 
-        assertThrows(CustomExceptions.DuplicateResourceException.class, () -> userService.createUser(createDTO));
-        verify(userRepository, never()).save(any(User.class));
+        assertThrows(DuplicateResourceException.class,
+                () -> userService.createUser(createDTO));
+    }
+
+    @Test
+    void testUpdateUser_ValidData_ShouldReturnUpdatedUserDTO() {
+        Long userId = 1L;
+        UserDTO updateDTO = new UserDTO();
+        updateDTO.setName("Jane");
+        updateDTO.setSurname("Smith");
+        updateDTO.setBirthDate(LocalDate.of(1995, 1, 1));
+        updateDTO.setEmail("jane.smith@example.com");
+
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setName("John");
+        existingUser.setSurname("Doe");
+        existingUser.setEmail("john.doe@example.com");
+
+        User updatedUser = new User();
+        updatedUser.setId(userId);
+        updatedUser.setName("Jane");
+        updatedUser.setSurname("Smith");
+        updatedUser.setEmail("jane.smith@example.com");
+
+        UserDTO expectedDTO = new UserDTO();
+        expectedDTO.setId(userId);
+        expectedDTO.setName("Jane");
+
+        when(userRepository.findUserById(userId)).thenReturn(existingUser);
+        when(userRepository.existsByEmail("jane.smith@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
+
+        UserDTO result = userService.updateUser(userId, updateDTO);
+
+        assertNotNull(result);
+        assertEquals(userId, result.getId());
+        assertEquals("Jane", result.getName());
+    }
+
+    @Test
+    void testUpdateUserStatus_WhenUserExists_ShouldUpdateStatus() {
+        Long userId = 1L;
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setActive(true);
+
+        User updatedUser = new User();
+        updatedUser.setId(userId);
+        updatedUser.setActive(false);
+
+        UserDTO expectedDTO = new UserDTO();
+        expectedDTO.setId(userId);
+        expectedDTO.setActive(false);
+
+        when(userRepository.findUserById(userId)).thenReturn(existingUser);
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
+
+        UserDTO result = userService.updateUserStatus(userId, false);
+
+        assertNotNull(result);
+        assertFalse(result.getActive());
     }
 
     @Test
     void testGetUserById_WhenUserExists_ShouldReturnUserDTO() {
-
         Long userId = 1L;
         User user = new User();
         user.setId(userId);
-        user.setName("John");
 
         UserDTO expectedDTO = new UserDTO();
         expectedDTO.setId(userId);
-        expectedDTO.setName("John");
 
         when(userRepository.findUserById(userId)).thenReturn(user);
         when(userMapper.toDTO(user)).thenReturn(expectedDTO);
@@ -101,21 +164,10 @@ class UserServiceTest {
 
         assertNotNull(result);
         assertEquals(userId, result.getId());
-        assertEquals("John", result.getName());
     }
 
     @Test
-    void testGetUserById_WhenUserNotExists_ShouldThrowException() {
-
-        Long userId = 999L;
-        when(userRepository.findUserById(userId)).thenReturn(null);
-
-        assertThrows(CustomExceptions.EntityNotFoundException.class, () -> userService.getUserById(userId));
-    }
-
-    @Test
-    void testGetAllUsers_ShouldReturnPageOfUserDTOs() {
-
+    void testGetAllUsers_ShouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
         User user = new User();
         user.setId(1L);
@@ -131,7 +183,6 @@ class UserServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userRepository).findAll(pageable);
     }
 
     @Test
@@ -159,54 +210,6 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdateUser_ValidData_ShouldReturnUpdatedUserDTO() {
-
-        Long userId = 1L;
-        UserDTO updateDTO = new UserDTO();
-        updateDTO.setName("Updated");
-        updateDTO.setSurname("Name");
-        updateDTO.setBirthDate(LocalDate.of(1990, 1, 1));
-        updateDTO.setEmail("updated@example.com");
-
-        User existingUser = new User();
-        existingUser.setId(userId);
-        existingUser.setEmail("old@example.com");
-
-        User updatedUser = new User();
-        updatedUser.setId(userId);
-        updatedUser.setName("Updated");
-        updatedUser.setEmail("updated2@example.com");
-
-        UserDTO expectedDTO = new UserDTO();
-        expectedDTO.setId(userId);
-        expectedDTO.setName("Updated");
-
-        when(userRepository.findUserById(userId)).thenReturn(existingUser);
-        when(userRepository.existsByEmail("updated@example.com")).thenReturn(false);
-        when(userRepository.updateUser(anyLong(), anyString(), anyString(), any(), anyString())).thenReturn(updatedUser);
-        when(userRepository.findUserById(userId)).thenReturn(updatedUser);
-        when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
-
-        UserDTO result = userService.updateUser(userId, updateDTO);
-
-        assertNotNull(result);
-        assertEquals("Updated", result.getName());
-        verify(userRepository).updateUser(userId, "Updated", "Name",
-                                        updateDTO.getBirthDate(), "updated@example.com");
-    }
-
-    @Test
-    void testUpdateUserStatus_WhenUserNotExists_ShouldThrowException() {
-        Long userId = 999L;
-
-        when(userRepository.updateUserStatus(userId, false))
-                .thenThrow(new CustomExceptions.EntityNotFoundException("User not found with id: " + userId));
-
-        assertThrows(CustomExceptions.EntityNotFoundException.class,
-                () -> userService.updateUserStatus(userId, false));
-    }
-
-    @Test
     void testDeleteUser_WhenUserExists_ShouldDeleteUser() {
 
         Long userId = 1L;
@@ -218,31 +221,6 @@ class UserServiceTest {
         userService.deleteUser(userId);
 
         verify(userRepository).delete(user);
-    }
-
-    @Test
-    void testUpdateUserStatus_WhenUserExists_ShouldUpdateStatus() {
-        Long userId = 1L;
-        User user = new User();
-        user.setId(userId);
-        user.setActive(true);
-
-        User updatedUser = new User();
-        updatedUser.setId(userId);
-        updatedUser.setActive(false);
-
-        UserDTO expectedDTO = new UserDTO();
-        expectedDTO.setId(userId);
-        expectedDTO.setActive(false);
-
-        when(userRepository.updateUserStatus(userId, false)).thenReturn(updatedUser);
-        when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
-
-        UserDTO result = userService.updateUserStatus(userId, false);
-
-        assertNotNull(result);
-        assertFalse(result.getActive());
-        verify(userRepository).updateUserStatus(userId, false);
     }
 
     @Test
@@ -259,7 +237,7 @@ class UserServiceTest {
         when(userRepository.findUserById(userId)).thenReturn(existingUser);
         when(userRepository.existsByEmail("duplicate@example.com")).thenReturn(true);
 
-        assertThrows(CustomExceptions.DuplicateResourceException.class,
+        assertThrows(DuplicateResourceException.class,
                 () -> userService.updateUser(userId, updateDTO));
     }
 

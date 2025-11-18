@@ -1,4 +1,4 @@
-package com.stoliar.user_service.exception;
+package com.stoliar.user_service.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

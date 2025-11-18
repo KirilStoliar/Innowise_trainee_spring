@@ -1,7 +1,6 @@
 package com.stoliar.user_service.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoliar.user_service.config.TestRedisConfig;
 import com.stoliar.user_service.dto.PaymentCardCreateDTO;
 import com.stoliar.user_service.entity.PaymentCard;
 import com.stoliar.user_service.entity.User;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,9 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+@ActiveProfiles("integration-test")
 @Transactional
-@Import(TestRedisConfig.class)
 class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -124,9 +121,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void createPaymentCard_WithInvalidData_ShouldReturnBadRequest() throws Exception {
         PaymentCardCreateDTO createDTO = new PaymentCardCreateDTO();
-        createDTO.setNumber("123"); // слишком короткий номер
-        createDTO.setHolder(""); // пустой владелец
-        createDTO.setExpirationDate(LocalDate.now().minusDays(1)); // прошедшая дата
+        createDTO.setNumber("123");
+        createDTO.setHolder("");
+        createDTO.setExpirationDate(LocalDate.now().minusDays(1));
 
         mockMvc.perform(post("/api/v1/users/{userId}/payment-cards", testUser.getId())
                         .contentType(MediaType.APPLICATION_JSON)

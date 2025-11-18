@@ -14,8 +14,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CustomExceptions.EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(CustomExceptions.EntityNotFoundException ex,
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex,
                                                                        WebRequest request) {
         log.error("Entity not found: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
@@ -27,8 +27,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(CustomExceptions.ValidationException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(CustomExceptions.ValidationException ex,
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex,
                                                                    WebRequest request) {
         log.error("Validation error: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
@@ -40,8 +40,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(CustomExceptions.BusinessRuleException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessRuleException(CustomExceptions.BusinessRuleException ex,
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessRuleException(BusinessRuleException ex,
                                                                      WebRequest request) {
         log.error("Business rule violation: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
@@ -53,8 +53,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(CustomExceptions.DuplicateResourceException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(CustomExceptions.DuplicateResourceException ex,
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(DuplicateResourceException ex,
                                                                           WebRequest request) {
         log.error("Duplicate resource: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(

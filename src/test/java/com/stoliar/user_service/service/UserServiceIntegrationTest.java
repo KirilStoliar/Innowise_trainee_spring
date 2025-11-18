@@ -3,6 +3,7 @@ package com.stoliar.user_service.service;
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.dto.UserDTO;
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.integration.AbstractIntegrationTest;
 import com.stoliar.user_service.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +16,9 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles("integration-test")
 @Transactional
-class UserServiceIntegrationTest {
+class UserServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserService userService;

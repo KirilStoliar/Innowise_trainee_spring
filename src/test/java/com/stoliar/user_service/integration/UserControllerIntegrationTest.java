@@ -1,16 +1,15 @@
 package com.stoliar.user_service.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoliar.user_service.config.TestRedisConfig;
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.repository.PaymentCardRepository;
 import com.stoliar.user_service.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,9 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+@ActiveProfiles("integration-test")
 @Transactional
-@Import(TestRedisConfig.class)
 class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -38,10 +36,16 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PaymentCardRepository paymentCardRepository;
+
     private User testUser;
 
     @BeforeEach
     void setUp() {
+        paymentCardRepository.deleteAll();
+        userRepository.deleteAll();
+
         testUser = new User();
         testUser.setName("Integration");
         testUser.setSurname("Test");
@@ -115,8 +119,8 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void createUser_WithInvalidData_ShouldReturnBadRequest() throws Exception {
         UserCreateDTO createDTO = new UserCreateDTO();
-        createDTO.setName(""); // пустое имя
-        createDTO.setSurname(""); // пустая фамилия
+        createDTO.setName("");
+        createDTO.setSurname("");
         createDTO.setBirthDate(LocalDate.now().plusDays(1)); // будущая дата рождения
         createDTO.setEmail("invalid-email"); // невалидный email
 
