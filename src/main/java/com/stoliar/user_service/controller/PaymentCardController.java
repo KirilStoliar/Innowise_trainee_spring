@@ -3,8 +3,8 @@ package com.stoliar.user_service.controller;
 
 import com.stoliar.user_service.dto.PaymentCardCreateDTO;
 import com.stoliar.user_service.dto.PaymentCardDTO;
-import com.stoliar.user_service.exception.ApiResponse;
-import com.stoliar.user_service.exception.CustomExceptions;
+import com.stoliar.user_service.exception.EntityNotFoundException;
+import com.stoliar.user_service.response.ApiResponse;
 import com.stoliar.user_service.service.PaymentCardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -62,17 +62,18 @@ public class PaymentCardController {
         return ResponseEntity.ok(ApiResponse.success(cards, "Cards retrieved successfully"));
     }
 
-    @GetMapping("/all")
+    @GetMapping("/paged")
     public ResponseEntity<ApiResponse<Page<PaymentCardDTO>>> getAllCards(
+            @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort) {
-        
-        log.info("Fetching all cards - page: {}, size: {}, sort: {}", page, size, sort);
+
+        log.info("Fetching paginated cards for user id: {}, page: {}, size: {}, sort: {}", userId, page, size, sort);
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
-        Page<PaymentCardDTO> cards = paymentCardService.getAllCards(pageable);
-        
-        return ResponseEntity.ok(ApiResponse.success(cards, "All cards retrieved successfully"));
+        Page<PaymentCardDTO> cardsPage = paymentCardService.getAllCardsByUserId(userId, pageable);
+
+        return ResponseEntity.ok(ApiResponse.success(cardsPage, "Paginated cards retrieved successfully"));
     }
 
     @PutMapping("/{cardId}")
@@ -117,13 +118,13 @@ public class PaymentCardController {
         checkCardOwnership(userId, cardId);
 
         paymentCardService.deleteCard(cardId);
-        return ResponseEntity.ok(ApiResponse.success(null, "Card deleted successfully"));
+        return ResponseEntity.noContent().build();
     }
 
     private PaymentCardDTO checkCardOwnership(Long userId, Long cardId) {
         PaymentCardDTO existingCard = paymentCardService.getCardById(cardId);
         if (!existingCard.getUserId().equals(userId)) {
-            throw new CustomExceptions.EntityNotFoundException("Card not found for this user");
+            throw new EntityNotFoundException("Card not found for this user");
         }
         return existingCard;
     }

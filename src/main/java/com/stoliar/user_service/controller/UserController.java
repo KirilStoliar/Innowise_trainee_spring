@@ -2,7 +2,7 @@ package com.stoliar.user_service.controller;
 
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.dto.UserDTO;
-import com.stoliar.user_service.exception.ApiResponse;
+import com.stoliar.user_service.response.ApiResponse;
 import com.stoliar.user_service.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +97,6 @@ public class UserController {
         log.info("Deleting user with id: {}", id);
 
         userService.deleteUser(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "User deleted successfully"));
+        return ResponseEntity.noContent().build();
     }
 }
