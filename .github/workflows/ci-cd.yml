@@ -122,7 +122,7 @@ jobs:
           ls -la build/test-results/test/ || echo "No test results"
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v4.0.1
+        uses: SonarSource/sonarcloud-github-action@v2.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
