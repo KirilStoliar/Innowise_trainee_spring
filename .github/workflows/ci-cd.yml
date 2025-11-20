@@ -140,7 +140,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [build, code-analysis]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/userservice_ci_pipe'
 
     steps:
       - name: Checkout code
