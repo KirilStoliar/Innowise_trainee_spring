@@ -120,27 +120,20 @@ jobs:
           ls -la build/reports/jacoco/test/ || echo "No jacoco report"
           echo "=== Test Results ==="
           ls -la build/test-results/test/ || echo "No test results"
+          echo "=== Build classes ==="
+          ls -la build/classes/java/main/ || echo "No main classes"
+          ls -la build/classes/java/test/ || echo "No test classes"
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2.0.0
+      - name: Run SonarCloud analysis with Gradle
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          projectBaseDir: ./
-          args: >
-            -Dsonar.projectKey=KirilStoliar_Innowise_trainee_spring
-            -Dsonar.organization=kirilstoliar
-            -Dsonar.projectName=User Service
-            -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.sources=src/main/java
-            -Dsonar.tests=src/test/java
-            -Dsonar.java.binaries=build/classes
-            -Dsonar.java.libraries=build/libs/*.jar
-            -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml
-            -Dsonar.junit.reportPaths=build/test-results/test
-            -Dsonar.coverage.exclusions=**/entity/**,**/dto/**,**/config/**,**/exception/**,**/response/**,**/UserServiceApplication.java
-            -Dsonar.sourceEncoding=UTF-8
+        run: |
+          ./gradlew sonar \
+            -Dsonar.projectKey=KirilStoliar_Innowise_trainee_spring \
+            -Dsonar.organization=kirilstoliar \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            --stacktrace --no-daemon
 
   docker-build:
     name: Build Docker Image
