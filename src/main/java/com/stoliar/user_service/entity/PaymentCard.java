@@ -15,7 +15,10 @@ import java.time.LocalDate;
 @Table(name = "payment_cards", indexes = {
     @Index(name = "idx_card_number", columnList = "number"),
     @Index(name = "idx_card_expiration_date", columnList = "expiration_date")
-})
+    },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_payment_cards_number", columnNames = "number")
+        })
 @Getter
 @Setter
 @ToString

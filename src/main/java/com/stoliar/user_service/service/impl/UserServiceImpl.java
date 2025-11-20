@@ -1,0 +1,134 @@
+package com.stoliar.user_service.service.impl;
+
+import com.stoliar.user_service.dto.UserCreateDTO;
+import com.stoliar.user_service.dto.UserDTO;
+import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.exception.CustomExceptions;
+import com.stoliar.user_service.mapper.UserMapper;
+import com.stoliar.user_service.repository.UserRepository;
+import com.stoliar.user_service.service.UserService;
+import com.stoliar.user_service.specification.UserSpecifications;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+
+    @Override
+    @Transactional
+    public UserDTO createUser(UserCreateDTO userCreateDTO) {
+        log.info("Creating new user with email: {}", userCreateDTO.getEmail());
+
+        if (userRepository.existsByEmail(userCreateDTO.getEmail())) {
+            throw new CustomExceptions.DuplicateResourceException("User with email " + userCreateDTO.getEmail() + " already exists");
+        }
+
+        // Используем нативный запрос с RETURNING
+        User createdUser = userRepository.createUser(
+                userCreateDTO.getName(),
+                userCreateDTO.getSurname(),
+                userCreateDTO.getBirthDate(),
+                userCreateDTO.getEmail()
+        );
+
+        return userMapper.toDTO(createdUser);
+    }
+
+    @Override
+    @Transactional
+    @Cacheable(value = "users", key = "#id")
+    public UserDTO getUserById(Long id) {
+        log.info("Fetching user by id: {}", id);
+        User user = userRepository.findUserById(id);
+        if (user == null) {
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
+        }
+        return userMapper.toDTO(user);
+    }
+
+    @Override
+    @Transactional
+    public Page<UserDTO> getAllUsers(Pageable pageable) {
+        log.info("Fetching all users with pagination");
+        return userRepository.findAll(pageable)
+                .map(userMapper::toDTO);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "users", key = "#id")
+    public UserDTO updateUser(Long id, UserDTO userDTO) {
+        log.info("Updating user with id: {}", id);
+
+        User existingUser = userRepository.findUserById(id);
+        if (existingUser == null) {
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
+        }
+
+        // Проверка уникальности почты
+        if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
+                userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new CustomExceptions.DuplicateResourceException("Email " + userDTO.getEmail() + " already exists");
+        }
+
+        existingUser.setName(userDTO.getName());
+        existingUser.setSurname(userDTO.getSurname());
+        existingUser.setBirthDate(userDTO.getBirthDate());
+        existingUser.setEmail(userDTO.getEmail());
+
+        User updatedUser = userRepository.save(existingUser);
+        return userMapper.toDTO(updatedUser);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "users", key = "#id")
+    public UserDTO updateUserStatus(Long id, boolean active) {
+        log.info("Updating user status: {}", active);
+
+        User existingUser = userRepository.findUserById(id);
+        if (existingUser == null) {
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
+        }
+
+        existingUser.setActive(active);
+        User updatedUser = userRepository.save(existingUser);
+
+        return userMapper.toDTO(updatedUser);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "users", key = "#id")
+    public void deleteUser(Long id) {
+        log.info("Deleting user with id: {}", id);
+        User user = userRepository.findUserById(id);
+        if (user == null) {
+            throw new CustomExceptions.EntityNotFoundException("User not found with id: " + id);
+        }
+        userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public Page<UserDTO> getUsersWithFilters(String firstName, String surname, Pageable pageable) {
+        log.info("Fetching users with filters - firstName: {}, surname: {}", firstName, surname);
+
+        Specification<User> spec = UserSpecifications.hasFirstName(firstName)
+                .and(UserSpecifications.hasSurname(surname));
+
+        return userRepository.findAll(spec, pageable).map(userMapper::toDTO);
+    }
+}

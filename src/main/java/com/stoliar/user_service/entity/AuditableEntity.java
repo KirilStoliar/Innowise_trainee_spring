@@ -22,6 +22,5 @@ public abstract class AuditableEntity {
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column
     private LocalDateTime updatedAt;
 }
