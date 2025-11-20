@@ -77,7 +77,7 @@ jobs:
 
       - name: Test Report
         uses: dorny/test-reporter@v1
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         with:
           name: Test Results
           path: build/test-results/**/*.xml
