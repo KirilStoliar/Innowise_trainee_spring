@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, userservice_docker, userservice_ci_pipe ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, userservice_docker ]
 
 env:
   REGISTRY: docker.io
