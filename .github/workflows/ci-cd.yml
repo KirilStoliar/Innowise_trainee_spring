@@ -77,7 +77,7 @@ jobs:
         if: always()
         with:
           name: Test Results
-          path: build/test-results/test/*.xml
+          path: build/test-results/**/*.xml
           reporter: java-junit
 
       - name: Upload build artifacts
