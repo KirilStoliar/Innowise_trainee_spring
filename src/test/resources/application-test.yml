@@ -17,6 +17,13 @@ spring:
   sql:
     init:
       mode: always
+  cache:
+    type: simple
+  data:
+    redis:
+      host: localhost
+      timeout: 2000ms
+      port: 6379
 
 logging:
   level:

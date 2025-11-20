@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,6 +39,12 @@ class PaymentCardServiceTest {
     @InjectMocks
     private PaymentCardServiceImpl paymentCardService;
 
+    @Mock
+    private CacheManager cacheManager;
+
+    @Mock
+    private Cache cache;
+
     @Test
     void testCreatePaymentCard_ValidData_ShouldReturnCardDTO() {
 
@@ -52,6 +60,7 @@ class PaymentCardServiceTest {
 
         PaymentCard card = new PaymentCard();
         card.setId(1L);
+        card.setUser(user);
         card.setNumber("1234567890123456");
         card.setHolder("John Doe");
         card.setExpirationDate(createDTO.getExpirationDate());
@@ -59,6 +68,7 @@ class PaymentCardServiceTest {
         PaymentCardDTO expectedDTO = new PaymentCardDTO();
         expectedDTO.setId(1L);
         expectedDTO.setNumber("1234567890123456");
+        card.setUser(user);
 
         when(userRepository.findUserById(userId)).thenReturn(user);
         when(userRepository.countActiveCardsByUserId(userId)).thenReturn(2);
@@ -145,6 +155,7 @@ class PaymentCardServiceTest {
         user.setActive(true);
 
         PaymentCard existingCard = new PaymentCard();
+        existingCard.setUser(user);
 
         when(userRepository.findUserById(userId)).thenReturn(user);
         when(userRepository.countActiveCardsByUserId(userId)).thenReturn(2);
@@ -194,15 +205,68 @@ class PaymentCardServiceTest {
 
     @Test
     void testDeleteCard_WhenCardExists_ShouldDeleteCard() {
-
         Long cardId = 1L;
+        User user = new User();
+        user.setId(1L);
+
         PaymentCard card = new PaymentCard();
         card.setId(cardId);
+        card.setUser(user);
 
         when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
+        when(cacheManager.getCache("users")).thenReturn(cache);
 
         paymentCardService.deleteCard(cardId);
 
         verify(paymentCardRepository).delete(card);
+        verify(cacheManager).getCache("users");
+        verify(cache).evict(user.getId());
+    }
+
+    @Test
+    void testUpdateCardStatus_WhenCardExists_ShouldUpdateStatus() {
+        Long cardId = 1L;
+        User user = new User();
+        user.setId(1L);
+
+        PaymentCard card = new PaymentCard();
+        card.setId(cardId);
+        card.setUser(user);
+        card.setActive(true);
+
+        PaymentCard updatedCard = new PaymentCard();
+        updatedCard.setId(cardId);
+        updatedCard.setUser(user);
+        updatedCard.setActive(false);
+
+        when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
+        when(paymentCardRepository.updateCardStatus(cardId, false)).thenReturn(updatedCard);
+        when(cacheManager.getCache("users")).thenReturn(cache);
+
+        paymentCardService.updateCardStatus(cardId, false);
+
+        verify(paymentCardRepository).updateCardStatus(cardId, false);
+        verify(cacheManager).getCache("users");
+        verify(cache).evict(user.getId());
+    }
+
+    @Test
+    void testDeleteCard_WhenCacheNotFound_ShouldStillDeleteCard() {
+        Long cardId = 1L;
+        User user = new User();
+        user.setId(1L);
+
+        PaymentCard card = new PaymentCard();
+        card.setId(cardId);
+        card.setUser(user);
+
+        when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
+        when(cacheManager.getCache("users")).thenReturn(null); // Кэш не найден
+
+        paymentCardService.deleteCard(cardId);
+
+        verify(paymentCardRepository).delete(card);
+        verify(cacheManager).getCache("users");
+        // Не должно быть вызова cache.evict() если кэш null
     }
 }

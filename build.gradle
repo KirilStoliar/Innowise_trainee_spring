@@ -35,6 +35,9 @@ dependencies {
     // Liquibase
     implementation 'org.liquibase:liquibase-core'
 
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // Auditing
     implementation 'org.springframework.data:spring-data-envers'
 
@@ -50,7 +53,7 @@ dependencies {
     // Тестирование
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'com.h2database:h2'
-
+    testImplementation 'it.ozimov:embedded-redis:0.7.2'
 }
 
 tasks.named('test') {
