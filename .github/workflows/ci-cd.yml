@@ -166,10 +166,13 @@ jobs:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/innowise_trainee_spring
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=ref,event=tag
+            type=sha,prefix=commit-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Debug - Check generated tags
+        run: |
+          echo "Generated tags: ${{ steps.meta.outputs.tags }}"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
