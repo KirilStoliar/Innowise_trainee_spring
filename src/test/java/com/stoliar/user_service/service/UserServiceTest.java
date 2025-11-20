@@ -3,6 +3,7 @@ package com.stoliar.user_service.service;
 import com.stoliar.user_service.dto.UserCreateDTO;
 import com.stoliar.user_service.dto.UserDTO;
 import com.stoliar.user_service.entity.User;
+import com.stoliar.user_service.exception.CustomExceptions;
 import com.stoliar.user_service.mapper.UserMapper;
 import com.stoliar.user_service.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -77,7 +78,7 @@ class UserServiceTest {
 
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> userService.createUser(createDTO));
+        assertThrows(CustomExceptions.DuplicateResourceException.class, () -> userService.createUser(createDTO));
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -109,7 +110,7 @@ class UserServiceTest {
         Long userId = 999L;
         when(userRepository.findUserById(userId)).thenReturn(null);
 
-        assertThrows(EntityNotFoundException.class, () -> userService.getUserById(userId));
+        assertThrows(CustomExceptions.DuplicateResourceException.class, () -> userService.getUserById(userId));
     }
 
     @Test
