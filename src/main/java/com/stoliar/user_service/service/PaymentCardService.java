@@ -17,5 +17,5 @@ public interface PaymentCardService {
     PaymentCardDTO updateCard(Long cardId, PaymentCardDTO paymentCardDTO);
     PaymentCardDTO updateCardStatus(Long id, boolean active);
 
-    void deleteCard(Long cardId);
+    void deleteCard(Long userId, Long cardId);
 }

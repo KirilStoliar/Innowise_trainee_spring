@@ -13,6 +13,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
@@ -95,16 +100,14 @@ class PaymentCardServiceTest {
     void testUpdateCard_ValidData_ShouldReturnUpdatedCardDTO() {
         // Given
         Long cardId = 1L;
-        Long userId = 1L;
 
         PaymentCardDTO updateDTO = new PaymentCardDTO();
         updateDTO.setNumber("9999888877776666");
         updateDTO.setHolder("New Holder");
         updateDTO.setExpirationDate(LocalDate.now().plusYears(3));
-        updateDTO.setUserId(userId);
 
         User user = new User();
-        user.setId(userId);
+        user.setId(1L);
 
         PaymentCard existingCard = new PaymentCard();
         existingCard.setId(cardId);
@@ -121,7 +124,7 @@ class PaymentCardServiceTest {
         PaymentCardDTO expectedDTO = new PaymentCardDTO();
         expectedDTO.setId(cardId);
         expectedDTO.setNumber("9999888877776666");
-        expectedDTO.setUserId(userId);
+        expectedDTO.setUserId(user.getId());
 
         when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(existingCard));
         when(paymentCardRepository.findByNumber("9999888877776666")).thenReturn(Optional.empty());
@@ -220,8 +223,9 @@ class PaymentCardServiceTest {
     void testDeleteCard_WhenCardExists_ShouldDeleteCard() {
         // Given
         Long cardId = 1L;
+        Long userId = 1L;
         User user = new User();
-        user.setId(1L);
+        user.setId(userId);
 
         PaymentCard card = new PaymentCard();
         card.setId(cardId);
@@ -230,7 +234,7 @@ class PaymentCardServiceTest {
         when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(card));
 
         // When
-        paymentCardService.deleteCard(cardId);
+        paymentCardService.deleteCard(user.getId(), cardId);
 
         // Then
         verify(paymentCardRepository).delete(card);
@@ -239,24 +243,21 @@ class PaymentCardServiceTest {
     @Test
     void testGetAllCards_ShouldReturnPage() {
         // Given
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        Pageable pageable = PageRequest.of(0, 10);
 
         PaymentCard card = new PaymentCard();
         card.setId(1L);
 
-        org.springframework.data.domain.Page<PaymentCard> cardPage =
-                new org.springframework.data.domain.PageImpl<>(List.of(card));
+        Page<PaymentCard> cardPage = new PageImpl<>(List.of(card));
 
         PaymentCardDTO cardDTO = new PaymentCardDTO();
         cardDTO.setId(1L);
 
-        when(paymentCardRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
-                .thenReturn(cardPage);
+        when(paymentCardRepository.findAll((Specification<PaymentCard>) any(), eq(pageable))).thenReturn(cardPage);
         when(paymentCardMapper.toDTO(card)).thenReturn(cardDTO);
 
         // When
-        org.springframework.data.domain.Page<PaymentCardDTO> result =
-                paymentCardService.getAllCards(pageable);
+        Page<PaymentCardDTO> result = paymentCardService.getAllCards(pageable);
 
         // Then
         assertNotNull(result);

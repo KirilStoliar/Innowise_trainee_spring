@@ -197,8 +197,6 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
         // When & Then
         mockMvc.perform(delete("/api/v1/users/{id}", testUser.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", containsString("deleted")));
+                .andExpect(status().isNoContent());
     }
 }

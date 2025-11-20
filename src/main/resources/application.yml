@@ -33,7 +33,16 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: ${REDIS_TIMEOUT:2000ms}
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+
 logging:
   level:
     com.stoliar.user_service: INFO
     org.hibernate.SQL: ${SHOW_SQL:false}
+    org.hibernate.type: TRACE
+    org.springdoc: DEBUG
+    io.swagger.v3: DEBUG

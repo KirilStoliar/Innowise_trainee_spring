@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -37,7 +39,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    @CachePut(value = "users", key = "#userId")
+    @CachePut(value = "paymentCards", key = "#result.id")
     public PaymentCardDTO createPaymentCard(Long userId, PaymentCardCreateDTO paymentCardCreateDTO) {
         log.info("Creating payment card for user id: {}", userId);
 
@@ -74,6 +76,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
+    @Cacheable(value = "paymentCards", key = "#cardId")
     public PaymentCardDTO getCardById(Long cardId) {
         log.info("Fetching card by id: {}", cardId);
         PaymentCard card = paymentCardRepository.findById(cardId)
@@ -112,7 +115,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    @CachePut(value = "users", key = "#paymentCardDTO.userId")
+    @CachePut(value = "paymentCards", key = "#cardId")
     public PaymentCardDTO updateCard(Long cardId, PaymentCardDTO paymentCardDTO) {
         log.info("Updating card with id: {}", cardId);
 
@@ -136,7 +139,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    @CachePut(value = "users", key = "#result.userId")
+    @CachePut(value = "paymentCards", key = "#cardId")
     public PaymentCardDTO updateCardStatus(Long cardId, boolean active) {
         log.info("Updating card status: {}", active);
 
@@ -151,12 +154,19 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "users", key = "#result.userId")
-    public void deleteCard(Long cardId) {
+    @Caching(evict = {
+            @CacheEvict(value = "paymentCards", key = "#cardId"),
+            @CacheEvict(value = "users", key = "#userId")
+    })
+    public void deleteCard(Long userId, Long cardId) {
         log.info("Deleting card with id: {}", cardId);
 
         PaymentCard card = paymentCardRepository.findById(cardId)
                 .orElseThrow(() -> new EntityNotFoundException("Card not found with id: " + cardId));
+
+        if (!card.getUser().getId().equals(userId)) {
+            throw new EntityNotFoundException("Card not found for this user");
+        }
 
         paymentCardRepository.delete(card);
     }

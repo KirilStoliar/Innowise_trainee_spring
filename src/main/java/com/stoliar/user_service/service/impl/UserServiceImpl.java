@@ -30,6 +30,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CachePut(value = "users", key = "#result.id")
     public UserDTO createUser(UserCreateDTO userCreateDTO) {
         log.info("Creating new user with email: {}", userCreateDTO.getEmail());
 
@@ -113,7 +114,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "users", key = "#id")
+    @CacheEvict(value = {"users", "paymentCards"}, allEntries = true)
     public void deleteUser(Long id) {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findUserById(id);

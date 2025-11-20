@@ -129,10 +129,9 @@ class PaymentCardControllerIntegrationTest extends AbstractIntegrationTest {
         // When & Then
         mockMvc.perform(delete("/api/v1/users/{userId}/payment-cards/{cardId}",
                 testUser.getId(), testCard.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", containsString("deleted")));
+                .andExpect(status().isNoContent());
     }
+
     @Test
     void createPaymentCard_WithInvalidData_ShouldReturnBadRequest() throws Exception {
         // Given
