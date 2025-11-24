@@ -7,6 +7,14 @@ plugins {
 group = 'com.stoliar'
 version = '0.0.1-SNAPSHOT'
 
+springBoot {
+    buildInfo()
+}
+
+bootJar {
+    archiveFileName = 'user-service.jar'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -59,10 +67,49 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
 }
 
+tasks.register('integration-test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+
+    systemProperty "spring.profiles.active", "integration-test"
+    include '**/*IntegrationTest*'
+    include '**/*RepositoryTest*'
+
+    dependsOn testClasses
+    mustRunAfter test
+
+    maxParallelForks = 1
+    forkEvery = 1
+
+    timeout = Duration.ofMinutes(10)
+
+    // Требует Docker
+    doFirst {
+        println "Running integration tests with Docker..."
+        println "Make sure Docker is running!"
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
+    }
+
+    systemProperty "spring.profiles.active", "test"
+
+    exclude '**/*IntegrationTest*'
+    exclude '**/*RepositoryTest*'
+}
+
+tasks.register('allTests') {
+    dependsOn test, integrationTest
+    doLast {
+        println "All tests completed!"
     }
 }
