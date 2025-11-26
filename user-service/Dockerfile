@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /workspace
 
 # Копируем ВЕСЬ проект из корня (включая gradlew)
-COPY .. .
+COPY . .
 
 # Даем права на выполнение gradlew
 RUN chmod +x gradlew
