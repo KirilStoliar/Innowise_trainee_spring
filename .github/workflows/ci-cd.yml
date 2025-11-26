@@ -61,14 +61,22 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Build application
+      - name: Validate Gradle wrapper
+        run: ./gradlew help
+
+      # Собираем все модули
+      - name: Build all modules
         run: ./gradlew build -x test
 
-      - name: Run unit tests
-        run: ./gradlew test
+      # Тестируем каждый модуль отдельно
+      - name: Run unit tests for user-service
+        run: ./gradlew :user-service:test
 
-      - name: Run integration tests
-        run: ./gradlew integration-test
+      - name: Run unit tests for auth-service
+        run: ./gradlew :auth-service:test
+
+      - name: Run integration tests for user-service
+        run: ./gradlew :user-service:integration-test
         env:
           DB_URL: jdbc:postgresql://localhost:5432/test_db
           DB_USERNAME: test_user
@@ -76,7 +84,14 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
-      - name: Build with Gradle
+      - name: Run integration tests for auth-service
+        run: ./gradlew :auth-service:integration-test
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/test_db
+          DB_USERNAME: test_user
+          DB_PASSWORD: test_password
+
+      - name: Build JARs for all modules
         run: ./gradlew bootJar
 
       - name: Test Report
@@ -84,14 +99,14 @@ jobs:
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: Test Results
-          path: build/test-results/**/*.xml
+          path: "**/build/test-results/**/*.xml"
           reporter: java-junit
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: application-jar
-          path: build/libs/*.jar
+          name: application-jars
+          path: "**/build/libs/*.jar"
           retention-days: 7
 
   code-analysis:
@@ -120,13 +135,11 @@ jobs:
 
       - name: Debug - Check reports exist
         run: |
-          echo "=== Jacoco Report ==="
-          ls -la build/reports/jacoco/test/ || echo "No jacoco report"
-          echo "=== Test Results ==="
-          ls -la build/test-results/test/ || echo "No test results"
-          echo "=== Build classes ==="
-          ls -la build/classes/java/main/ || echo "No main classes"
-          ls -la build/classes/java/test/ || echo "No test classes"
+          echo "=== Checking reports ==="
+          find . -name "jacocoTestReport" -type d
+          find . -name "test-results" -type d
+          echo "=== Build structure ==="
+          find . -name "*.jar" -type f
 
       - name: Run SonarCloud analysis with Gradle
         env:
@@ -174,14 +187,23 @@ jobs:
         run: |
           echo "Generated tags: ${{ steps.meta.outputs.tags }}"
 
-      - name: Build and push Docker image
+      - name: Build and push user-service
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: user-service/Dockerfile
+          context: ./user-service
+          file: ./user-service/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push auth-service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./auth-service
+          file: ./auth-service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
