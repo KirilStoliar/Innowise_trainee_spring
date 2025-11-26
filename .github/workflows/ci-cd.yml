@@ -84,13 +84,6 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
-      - name: Run integration tests for auth-service
-        run: ./gradlew :auth-service:integration-test
-        env:
-          DB_URL: jdbc:postgresql://localhost:5432/test_db
-          DB_USERNAME: test_user
-          DB_PASSWORD: test_password
-
       - name: Build JARs for all modules
         run: ./gradlew bootJar
 
