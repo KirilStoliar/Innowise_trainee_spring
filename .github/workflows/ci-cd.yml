@@ -23,9 +23,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: ${{ secrets.CI_POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -70,9 +70,9 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integration-test
         env:
-          DB_URL: ${{ secrets.CI_DB_URL }}
-          DB_USERNAME: ${{ secrets.CI_DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          DB_URL: jdbc:postgresql://localhost:5432/test_db
+          DB_USERNAME: test_user
+          DB_PASSWORD: test_password
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
@@ -178,6 +178,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: user-service/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

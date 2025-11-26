@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-admin-user
+      author: kiril stoliar
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: "0"
+            sql: "SELECT COUNT(*) FROM users WHERE email = 'admin@example.com'"
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO users (name, surname, birth_date, email, active, created_at, updated_at)
+              VALUES ('Admin', 'User', '1980-01-01', 'admin@example.com', true, NOW(), NOW())
