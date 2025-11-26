@@ -1,27 +1,35 @@
 # Build stage
-FROM eclipse-temurin:21-jdk-alpine AS builder
-WORKDIR /workspace
+FROM gradle:8.5-jdk21-alpine AS builder
+WORKDIR /workspace/app
 
-# Копируем ВЕСЬ проект из корня (включая gradlew)
-COPY . .
+# Копируем ВЕСЬ проект
+COPY .. .
 
-# Даем права на выполнение gradlew (он теперь в /workspace)
-RUN chmod +x gradlew
+# Отладочная информация - проверим что скопировалось
+RUN echo "=== Checking files in /workspace/app ===" && \
+    ls -la && \
+    echo "=== Looking for gradlew ===" && \
+    find . -name "gradlew" -type f
 
-# Собираем приложение (указываем конкретный модуль)
-RUN ./gradlew :auth-service:bootJar --no-daemon
+# Даем права на выполнение gradlew (используем полный путь)
+RUN chmod +x /workspace/app/gradlew
+
+# Проверяем что gradlew исполняемый
+RUN ls -la /workspace/app/gradlew
+
+# Собираем приложение (используем полный путь к gradlew)
+RUN /workspace/app/gradlew :auth-service:bootJar --no-daemon --stacktrace
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Создаем пользователя для безопасности
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring
 
-# Копируем JAR из build stage
-COPY --from=builder /workspace/auth-service/build/libs/*.jar app.jar
+COPY --from=builder /workspace/app/auth-service/build/libs/*.jar app.jar
 
-EXPOSE 8081
+EXPOSE 8080
+# Для auth-service: EXPOSE 8081
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
