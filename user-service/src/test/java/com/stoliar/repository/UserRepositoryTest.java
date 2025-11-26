@@ -1,8 +1,7 @@
-package com.stoliar.user_service.repository;
+package com.stoliar.repository;
 
 import com.stoliar.entity.PaymentCard;
 import com.stoliar.entity.User;
-import com.stoliar.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;

@@ -1,4 +1,4 @@
-package com.stoliar.user_service.service;
+package com.stoliar.service;
 
 import com.stoliar.dto.PaymentCardCreateDTO;
 import com.stoliar.dto.PaymentCardDTO;

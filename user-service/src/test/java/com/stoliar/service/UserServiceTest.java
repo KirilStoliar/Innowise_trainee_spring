@@ -1,4 +1,4 @@
-package com.stoliar.user_service.service;
+package com.stoliar.service;
 
 import com.stoliar.dto.UserCreateDTO;
 import com.stoliar.dto.UserDTO;

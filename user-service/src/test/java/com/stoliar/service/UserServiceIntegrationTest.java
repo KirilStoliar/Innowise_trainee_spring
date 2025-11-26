@@ -1,14 +1,15 @@
-package com.stoliar.user_service.service;
+package com.stoliar.service;
 
 import com.stoliar.dto.UserCreateDTO;
 import com.stoliar.dto.UserDTO;
 import com.stoliar.entity.User;
+import com.stoliar.integration.AbstractIntegrationTest;
+import com.stoliar.integration.TestIntegrationSecurityConfig;
 import com.stoliar.repository.UserRepository;
-import com.stoliar.service.UserService;
-import com.stoliar.user_service.integration.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("integration-test")
 @Transactional
+@Import(TestIntegrationSecurityConfig.class)
 class UserServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired

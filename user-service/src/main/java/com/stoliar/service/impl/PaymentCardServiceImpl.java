@@ -14,7 +14,6 @@ import com.stoliar.service.PaymentCardService;
 import com.stoliar.specification.PaymentCardSpecifications;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -35,7 +34,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     private final PaymentCardRepository paymentCardRepository;
     private final UserRepository userRepository;
     private final PaymentCardMapper paymentCardMapper;
-    private final CacheManager cacheManager;
 
     @Override
     @Transactional

@@ -1,7 +1,7 @@
-package com.stoliar.user_service.repository;
+package com.stoliar.integration;
 
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -10,14 +10,14 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-@DataJpaTest
+@SpringBootTest
 @ActiveProfiles("integration-test")
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public abstract class AbstractJpaTest {
+@Import(TestIntegrationSecurityConfig.class)
+public abstract class AbstractIntegrationTest {
 
     @Container
-    static final PostgreSQLContainer<?> postgresqlContainer = new PostgreSQLContainer<>(
+    static PostgreSQLContainer<?> postgresqlContainer = new PostgreSQLContainer<>(
             DockerImageName.parse("postgres:15-alpine")
     )
             .withDatabaseName("testdb")
@@ -25,15 +25,24 @@ public abstract class AbstractJpaTest {
             .withPassword("test")
             .withReuse(true);
 
-    static {
-        postgresqlContainer.start();
-    }
-
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
+        // PostgreSQL настройки
         registry.add("spring.datasource.url", postgresqlContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgresqlContainer::getUsername);
         registry.add("spring.datasource.password", postgresqlContainer::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+
+        // Явно отключаем Liquibase и настраиваем JPA
+        registry.add("spring.liquibase.enabled", () -> "false");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+
+        // Отключаем Redis для тестов
+        registry.add("spring.data.redis.enabled", () -> "false");
+        registry.add("spring.cache.type", () -> "none");
+
+        // Явно отключаем security для тестов
+        registry.add("spring.security.enabled", () -> "false");
+        registry.add("management.security.enabled", () -> "false");
     }
 }

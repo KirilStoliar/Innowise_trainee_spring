@@ -27,12 +27,29 @@ spring:
   cache:
     type: none
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
   # Увеличиваем таймауты подключения к БД для тестов
   datasource:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
       connection-timeout: 60000
+
+# Явно отключаем security
+security:
+  basic:
+    enabled: false
+
+management:
+  security:
+    enabled: false
 
 logging:
   level:
