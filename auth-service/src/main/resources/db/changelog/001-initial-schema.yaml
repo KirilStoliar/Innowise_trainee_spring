@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: your_name
+      changes:
+        - createTable:
+            tableName: user_credentials
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: surname
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: birth_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+
+        - insert:
+            tableName: user_credentials
+            columns:
+              - column:
+                  name: email
+                  value: admin@example.com
+              - column:
+                  name: password
+                  value: '$2a$10$7uE91RSdKhmcixCLf6xYgenfF/ckHHikL40.52EkXNy0PQ2iYSJ/u'  # admin123
+              - column:
+                  name: role
+                  value: ADMIN
+              - column:
+                  name: name
+                  value: Admin
+              - column:
+                  name: surname
+                  value: User
+              - column:
+                  name: birth_date
+                  value: '2000-01-01'
+              - column:
+                  name: active
+                  value: true
+              - column:
+                  name: created_at
+                  value: now()
+              - column:
+                  name: updated_at
+                  value: now()
