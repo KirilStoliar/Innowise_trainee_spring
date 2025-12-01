@@ -29,7 +29,6 @@ USER spring
 
 COPY --from=builder /workspace/app/auth-service/build/libs/*.jar app.jar
 
-EXPOSE 8080
-# Для auth-service: EXPOSE 8081
+EXPOSE 8081
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

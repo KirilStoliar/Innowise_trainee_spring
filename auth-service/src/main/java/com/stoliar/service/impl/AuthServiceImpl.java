@@ -1,6 +1,5 @@
 package com.stoliar.service.impl;
 
-import com.stoliar.config.JwtProperties;
 import com.stoliar.dto.*;
 import com.stoliar.entity.Role;
 import com.stoliar.entity.UserCredentials;

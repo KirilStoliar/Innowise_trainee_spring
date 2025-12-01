@@ -1,9 +1,6 @@
 package com.stoliar.controller;
 
-import com.stoliar.dto.LoginRequest;
-import com.stoliar.dto.TokenResponse;
-import com.stoliar.dto.TokenValidationResponse;
-import com.stoliar.dto.UserCredentialsRequest;
+import com.stoliar.dto.*;
 import com.stoliar.entity.UserCredentials;
 import com.stoliar.response.ApiResponse;
 import com.stoliar.service.AuthService;
@@ -27,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final int index = 7;
 
     @Operation(summary = "Save user credentials", description = "Save user credentials (ADMIN only)")
     @PostMapping("/register")
@@ -63,10 +61,16 @@ public class AuthController {
     @Operation(summary = "Validate token", description = "Validate JWT token")
     @PostMapping("/validate")
     public ResponseEntity<ApiResponse<TokenValidationResponse>> validateToken(
-            @RequestParam String token) {
+            @RequestHeader("Authorization") String authHeader) {
 
         log.info("Token validation request");
 
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid Authorization header format. Expected: Bearer <token>"));
+        }
+
+        String token = authHeader.substring(index);
         TokenValidationResponse validationResponse = authService.validateToken(token);
         String message = validationResponse.isValid() ? "Token is valid" : "Token is invalid";
 
@@ -76,18 +80,18 @@ public class AuthController {
     @Operation(summary = "Refresh token", description = "Refresh JWT tokens using refresh token")
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(
-            @RequestParam String refreshToken) {
+            @Valid @RequestBody RefreshTokenRequest request) {
 
         log.info("Refresh token request");
 
-        TokenResponse tokenResponse = authService.refreshToken(refreshToken);
+        TokenResponse tokenResponse = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(tokenResponse, "Token refreshed successfully"));
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            return bearerToken.substring(index);
         }
         return null;
     }
