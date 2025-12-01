@@ -53,3 +53,11 @@ project(':auth-service') {
         archiveFileName = 'auth-service.jar'
     }
 }
+
+project(':order-service') {
+    apply plugin: 'org.springframework.boot'
+
+    bootJar {
+        archiveFileName = 'order-service.jar'
+    }
+}

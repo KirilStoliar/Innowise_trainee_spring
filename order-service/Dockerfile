@@ -18,7 +18,7 @@ RUN chmod +x /workspace/app/gradlew
 RUN ls -la /workspace/app/gradlew
 
 # Собираем приложение (используем полный путь к gradlew)
-RUN /workspace/app/gradlew :auth-service:bootJar --no-daemon --stacktrace
+RUN /workspace/app/gradlew :order-service:bootJar --no-daemon --stacktrace
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
@@ -27,8 +27,8 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring
 
-COPY --from=builder /workspace/app/auth-service/build/libs/*.jar app.jar
+COPY --from=builder /workspace/app/order-service/build/libs/*.jar app.jar
 
-EXPOSE 8081
+EXPOSE 8082
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

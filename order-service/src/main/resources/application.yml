@@ -1,32 +1,23 @@
 spring:
-  config:
-    activate:
-      on-profile: docker
+  application:
+    name: order-service
 
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: ${SHOW_SQL:false}
         format_sql: true
-    show-sql: false
-
   liquibase:
-    enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: ${LIQUIBASE_ENABLED:true}
 
-  data:
-    redis:
-      host: redis
-      port: 6379
-
-logging:
-  level:
-    com.stoliar.user_service: INFO
+server:
+  port: 8082

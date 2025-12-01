@@ -3,6 +3,8 @@ package com.stoliar.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -28,7 +30,13 @@ public class OpenApiConfig {
                                         .name(securitySchemeName)
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .bearerFormat("JWT")));
+                                        .bearerFormat("JWT"))
+                        .addParameters("AuthorizationHeader", new Parameter()
+                                .in("header")
+                                .name("Authorization")
+                                .description("Bearer token")
+                                .required(true)
+                                .schema(new StringSchema().example("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))));
     }
 
     @Bean

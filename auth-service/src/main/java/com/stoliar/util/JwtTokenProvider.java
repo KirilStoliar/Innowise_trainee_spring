@@ -118,7 +118,10 @@ public class JwtTokenProvider {
         Claims claims = getClaimsFromToken(token);
         long expirationMs = claims.getExpiration().getTime();
         long currentMs = System.currentTimeMillis();
-        return (expirationMs - currentMs) / 1000;
+        long remainingSeconds = (expirationMs - currentMs) / 1000;
+
+        // Возвращаем 0, если токен уже истек (отрицательное значение)
+        return Math.max(remainingSeconds, 0);
     }
 
     public JwtProperties getJwtProperties() {
