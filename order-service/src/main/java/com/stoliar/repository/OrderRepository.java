@@ -39,4 +39,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Modifying
     @Query("UPDATE Order o SET o.deleted = true WHERE o.id = :id")
     void softDeleteById(@Param("id") Long id);
+
+    // Проверка существования (только неудаленные)
+    @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.id = :id AND o.deleted = false")
+    boolean existsByIdAndNotDeleted(@Param("id") Long id);
 }
