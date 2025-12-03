@@ -1,4 +1,4 @@
-package com.stoliar.dto;
+package com.stoliar.dto.orderItem;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;

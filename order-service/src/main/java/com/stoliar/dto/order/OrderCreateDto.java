@@ -1,5 +1,6 @@
-package com.stoliar.dto;
+package com.stoliar.dto.order;
 
+import com.stoliar.dto.orderItem.OrderItemCreateDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -13,5 +14,5 @@ public class OrderCreateDto {
     private Long userId;
     
     @NotEmpty(message = "Order must contain at least one item")
-    private List<@Valid OrderItemDto> orderItems;
+    private List<@Valid OrderItemCreateDto> orderItems;
 }

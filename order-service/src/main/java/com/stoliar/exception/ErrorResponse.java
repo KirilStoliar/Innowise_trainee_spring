@@ -1,0 +1,34 @@
+package com.stoliar.exception;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ErrorResponse {
+    private LocalDateTime timestamp;
+    private Integer status;
+    private String error;
+    private String message;
+    private String path;
+    private Map<String, String> errors;
+    
+    // Альтернатива статическим методам создания
+    public static ErrorResponse of(Integer status, String error, String message) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status)
+                .error(error)
+                .message(message)
+                .build();
+    }
+}

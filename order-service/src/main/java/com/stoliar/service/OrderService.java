@@ -1,10 +1,19 @@
 package com.stoliar.service;
 
 import com.stoliar.client.UserServiceClient;
-import com.stoliar.dto.*;
+import com.stoliar.dto.orderItem.OrderItemCreateDto;
+import com.stoliar.dto.orderItem.OrderItemDto;
+import com.stoliar.dto.order.OrderCreateDto;
+import com.stoliar.dto.order.OrderFilterDto;
+import com.stoliar.dto.order.OrderResponseDto;
+import com.stoliar.dto.order.OrderUpdateDto;
+import com.stoliar.dto.orderItem.OrderItemUpdateDto;
+import com.stoliar.dto.user.UserInfoDto;
 import com.stoliar.entity.Order;
 import com.stoliar.entity.OrderItem;
 import com.stoliar.entity.Item;
+import com.stoliar.exception.EntityNotFoundException;
+import com.stoliar.exception.ServiceUnavailableException;
 import com.stoliar.mapper.OrderMapper;
 import com.stoliar.mapper.ItemMapper;
 import com.stoliar.repository.OrderRepository;
@@ -22,6 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,21 +55,30 @@ public class OrderService {
     public OrderResponseDto createOrder(@Valid OrderCreateDto orderCreateDto) {
         log.info("Creating order for user id: {}", orderCreateDto.getUserId());
 
-        UserInfoDto userInfo = userServiceClient.getUserById(orderCreateDto.getUserId());
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(orderCreateDto.getUserId());
 
-        Order order = new Order(); // Создаем сущность напрямую вместо маппера
-        order.setUserId(orderCreateDto.getUserId());
-        order.setEmail(userInfo.getEmail());
-        order.setStatus(Order.OrderStatus.PENDING);
-        order.setDeleted(false);
+            if (userInfo.getId() == null || userInfo.getId() == -1L) {
+                throw new EntityNotFoundException("User not found with id: " + orderCreateDto.getUserId());
+            }
 
-        createOrderItems(order, orderCreateDto.getOrderItems());
-        calculateTotalPrice(order);
+            Order order = new Order();
+            order.setUserId(orderCreateDto.getUserId());
+            order.setEmail(userInfo.getEmail());
+            order.setStatus(Order.OrderStatus.PENDING);
+            order.setDeleted(false);
 
-        Order savedOrder = orderRepository.save(order);
-        log.info("Order created with id: {}", savedOrder.getId());
+            createOrderItems(order, orderCreateDto.getOrderItems());
+            calculateTotalPrice(order);
 
-        return enrichOrderWithUserInfo(savedOrder, userInfo);
+            Order savedOrder = orderRepository.save(order);
+            log.info("Order created with id: {}", savedOrder.getId());
+
+            return enrichOrderWithUserInfo(savedOrder, userInfo);
+        } catch (Exception e) {
+            log.error("Failed to create order for user {}: {}", orderCreateDto.getUserId(), e.getMessage());
+            throw new ServiceUnavailableException("Failed to create order: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -66,11 +86,15 @@ public class OrderService {
         log.info("Getting order by id: {}", id);
 
         Order order = orderRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
 
-        UserInfoDto userInfo = userServiceClient.getUserById(order.getUserId());
-
-        return enrichOrderWithUserInfo(order, userInfo);
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(order.getUserId());
+            return enrichOrderWithUserInfo(order, userInfo);
+        } catch (Exception e) {
+            log.error("Failed to get user info for order {}: {}", id, e.getMessage());
+            throw new ServiceUnavailableException("Failed to retrieve order details", e);
+        }
     }
 
     @Transactional
@@ -81,17 +105,33 @@ public class OrderService {
         Specification<Order> spec = orderSpecification.withFilters(
                 filterDto.getCreatedFrom(), filterDto.getCreatedTo(), filterDto.getStatuses());
 
-        return orderRepository.findAll(spec, pageable)
-                .map(order -> enrichOrderWithUserInfo(order, userServiceClient.getUserById(order.getUserId())));
+        Page<Order> ordersPage = orderRepository.findAll(spec, pageable);
+
+        return ordersPage.map(order -> {
+            try {
+                UserInfoDto userInfo = userServiceClient.getUserById(order.getUserId());
+                return enrichOrderWithUserInfo(order, userInfo);
+            } catch (Exception e) {
+                log.warn("Failed to get user info for order {}: {}", order.getId(), e.getMessage());
+                return enrichOrderWithUserInfo(order, createFallbackUser(order.getUserId()));
+            }
+        });
     }
 
+    @Transactional
     public Page<OrderResponseDto> getOrdersByUserId(Long userId, Pageable pageable) {
         log.info("Getting orders for user: {}", userId);
 
-        UserInfoDto userInfo = userServiceClient.getUserById(userId);
+        Page<Order> ordersPage = orderRepository.findByUserId(userId, pageable);
 
-        return orderRepository.findByUserId(userId, pageable)
-                .map(order -> enrichOrderWithUserInfo(order, userInfo));
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(userId);
+            return ordersPage.map(order -> enrichOrderWithUserInfo(order, userInfo));
+        } catch (Exception e) {
+            log.warn("Failed to get user info for user {}: {}", userId, e.getMessage());
+            UserInfoDto fallbackUser = createFallbackUser(userId);
+            return ordersPage.map(order -> enrichOrderWithUserInfo(order, fallbackUser));
+        }
     }
 
     @Transactional
@@ -99,14 +139,37 @@ public class OrderService {
         log.info("Updating order with id: {}", id);
 
         Order existingOrder = orderRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
 
+        // Проверяем, можно ли изменять заказ в текущем статусе
+        validateOrderStatusForUpdate(existingOrder.getStatus(), orderUpdateDto);
+
+        // Обновляем статус
         existingOrder.setStatus(orderUpdateDto.getStatus());
+
+        // Если передан userId - обновляем пользователя
+        if (orderUpdateDto.getUserId() != null) {
+            validateUserForOrderUpdate(existingOrder, orderUpdateDto.getUserId());
+            UserInfoDto userInfo = getUserInfo(orderUpdateDto.getUserId());
+            existingOrder.setUserId(orderUpdateDto.getUserId());
+            existingOrder.setEmail(userInfo.getEmail());
+        }
+
+        // Если передан список товаров - обновляем состав заказа
+        if (orderUpdateDto.getOrderItems() != null && !orderUpdateDto.getOrderItems().isEmpty()) {
+            updateOrderItems(existingOrder, orderUpdateDto.getOrderItems());
+            calculateTotalPrice(existingOrder);
+        }
+
         Order updatedOrder = orderRepository.save(existingOrder);
 
-        UserInfoDto userInfo = userServiceClient.getUserById(updatedOrder.getUserId());
-
-        return enrichOrderWithUserInfo(updatedOrder, userInfo);
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(updatedOrder.getUserId());
+            return enrichOrderWithUserInfo(updatedOrder, userInfo);
+        } catch (Exception e) {
+            log.error("Failed to get user info for updated order {}: {}", id, e.getMessage());
+            throw new ServiceUnavailableException("Failed to update order", e);
+        }
     }
 
     @Transactional
@@ -114,7 +177,7 @@ public class OrderService {
         log.info("Deleting order with id: {}", id);
 
         if (!orderRepository.existsByIdAndNotDeleted(id)) {
-            throw new RuntimeException("Order not found with id: " + id);
+            throw new EntityNotFoundException("Order not found with id: " + id);
         }
 
         orderItemRepository.deleteByOrderId(id);
@@ -122,15 +185,16 @@ public class OrderService {
     }
 
     // Вспомогательные методы
-    private void createOrderItems(Order order, List<OrderItemDto> orderItemDtos) {
-        if (orderItemDtos == null || orderItemDtos.isEmpty()) {
-            throw new RuntimeException("Order must contain at least one item");
+    private void createOrderItems(Order order, List<OrderItemCreateDto> orderItemCreateDtos) {
+        if (orderItemCreateDtos == null || orderItemCreateDtos.isEmpty()) {
+            throw new IllegalArgumentException("Order must contain at least one item");
         }
 
-        List<OrderItem> orderItems = orderItemDtos.stream()
+        List<OrderItem> orderItems = orderItemCreateDtos.stream()
                 .map(dto -> {
                     Item item = itemRepository.findById(dto.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Item not found with id: " + dto.getItemId()));
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "Item not found with id: " + dto.getItemId()));
 
                     OrderItem orderItem = new OrderItem();
                     orderItem.setOrder(order);
@@ -163,5 +227,104 @@ public class OrderService {
         }
 
         return responseDto;
+    }
+
+    private UserInfoDto createFallbackUser(Long userId) {
+        UserInfoDto fallback = new UserInfoDto();
+        fallback.setId(userId);
+        fallback.setEmail("service@unavailable.com");
+        fallback.setName("Service");
+        fallback.setSurname("Unavailable");
+        fallback.setActive(false);
+        return fallback;
+    }
+
+    private void validateOrderStatusForUpdate(Order.OrderStatus currentStatus, OrderUpdateDto updateDto) {
+        // Определяем, в каких статусах можно изменять состав заказа
+        List<Order.OrderStatus> allowedStatusesForItemUpdate = Arrays.asList(
+                Order.OrderStatus.PENDING,
+                Order.OrderStatus.CONFIRMED
+        );
+
+        // Если пытаемся изменить товары в неподходящем статусе
+        if (updateDto.getOrderItems() != null &&
+                !updateDto.getOrderItems().isEmpty() &&
+                !allowedStatusesForItemUpdate.contains(currentStatus)) {
+            throw new IllegalStateException(
+                    String.format("Cannot update order items in current status: %s. " +
+                                    "Allowed statuses: %s",
+                            currentStatus, allowedStatusesForItemUpdate)
+            );
+        }
+
+        // Если пытаемся изменить пользователя в неподходящем статусе
+        if (updateDto.getUserId() != null && !allowedStatusesForItemUpdate.contains(currentStatus)) {
+            throw new IllegalStateException(
+                    String.format("Cannot change user for order in current status: %s. " +
+                                    "Allowed statuses: %s",
+                            currentStatus, allowedStatusesForItemUpdate)
+            );
+        }
+    }
+
+    private void updateOrderItems(Order order, List<OrderItemUpdateDto> orderItemUpdateDtos) {
+        // Удаляем старые элементы
+        orderItemRepository.deleteByOrderId(order.getId());
+
+        // Создаем новые элементы
+        List<OrderItem> orderItems = new ArrayList<>();
+
+        for (OrderItemUpdateDto dto : orderItemUpdateDtos) {
+            Item item = itemRepository.findById(dto.getItemId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Item not found with id: " + dto.getItemId()));
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setItem(item);
+            orderItem.setQuantity(dto.getQuantity());
+
+            // Сохраняем сразу
+            OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+            orderItems.add(savedOrderItem);
+        }
+
+        order.setOrderItems(orderItems);
+    }
+
+    private void validateUserForOrderUpdate(Order order, Long newUserId) {
+
+        List<Order.OrderStatus> allowedStatusesForUserChange = Arrays.asList(
+                Order.OrderStatus.PENDING,
+                Order.OrderStatus.CONFIRMED
+        );
+
+        if (!allowedStatusesForUserChange.contains(order.getStatus())) {
+            throw new IllegalStateException(
+                    String.format("Cannot change user for order in current status: %s. " +
+                                    "Allowed statuses: %s",
+                            order.getStatus(), allowedStatusesForUserChange)
+            );
+        }
+    }
+
+    private UserInfoDto getUserInfo(Long userId) {
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(userId);
+
+            // Проверяем, что пользователь найден и активен
+            if (userInfo.getId() == null || userInfo.getId() == -1L) {
+                throw new EntityNotFoundException("User not found with id: " + userId);
+            }
+
+            if (userInfo.getActive() != null && !userInfo.getActive()) {
+                log.warn("User {} is inactive, but order is being updated", userId);
+            }
+
+            return userInfo;
+        } catch (Exception e) {
+            log.error("Failed to get user info for userId {}: {}", userId, e.getMessage());
+            throw new ServiceUnavailableException("Failed to get user information", e);
+        }
     }
 }

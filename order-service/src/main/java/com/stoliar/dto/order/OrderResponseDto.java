@@ -1,5 +1,7 @@
-package com.stoliar.dto;
+package com.stoliar.dto.order;
 
+import com.stoliar.dto.orderItem.OrderItemDto;
+import com.stoliar.dto.user.UserInfoDto;
 import com.stoliar.entity.Order;
 import lombok.Data;
 

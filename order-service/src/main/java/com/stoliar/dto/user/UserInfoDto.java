@@ -1,4 +1,4 @@
-package com.stoliar.dto;
+package com.stoliar.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;

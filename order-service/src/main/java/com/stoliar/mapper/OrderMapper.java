@@ -1,7 +1,7 @@
 package com.stoliar.mapper;
 
-import com.stoliar.dto.OrderCreateDto;
-import com.stoliar.dto.OrderResponseDto;
+import com.stoliar.dto.order.OrderCreateDto;
+import com.stoliar.dto.order.OrderResponseDto;
 import com.stoliar.entity.Order;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
