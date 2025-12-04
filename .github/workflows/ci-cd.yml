@@ -95,7 +95,7 @@ jobs:
           REDIS_PORT: 6379
 
       - name: Run tests for order-service
-        run: ./gradlew :order-service:integrationTest --stacktrace
+        run: ./gradlew :order-service:test --stacktrace
         env:
           DB_URL: jdbc:postgresql://localhost:5432/${{ secrets.CI_POSTGRES_DB }}
           DB_USERNAME: ${{ secrets.CI_DB_USERNAME }}
