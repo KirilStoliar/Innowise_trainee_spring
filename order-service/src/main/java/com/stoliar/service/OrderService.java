@@ -55,6 +55,7 @@ public class OrderService {
     public OrderResponseDto createOrder(@Valid OrderCreateDto orderCreateDto) {
         log.info("Creating order for user id: {}", orderCreateDto.getUserId());
 
+        Order order = new Order();
         try {
             UserInfoDto userInfo = userServiceClient.getUserById(orderCreateDto.getUserId());
 
@@ -62,7 +63,6 @@ public class OrderService {
                 throw new EntityNotFoundException("User not found with id: " + orderCreateDto.getUserId());
             }
 
-            Order order = new Order();
             order.setUserId(orderCreateDto.getUserId());
             order.setEmail(userInfo.getEmail());
             order.setStatus(Order.OrderStatus.PENDING);
@@ -76,8 +76,10 @@ public class OrderService {
 
             return enrichOrderWithUserInfo(savedOrder, userInfo);
         } catch (Exception e) {
-            log.error("Failed to create order for user {}: {}", orderCreateDto.getUserId(), e.getMessage());
-            throw new ServiceUnavailableException("Failed to create order: " + e.getMessage(), e);
+            log.warn("User service unavailable, using fallback user: {}", e.getMessage());
+            UserInfoDto fallback = createFallbackUser(orderCreateDto.getUserId());
+            Order saved = orderRepository.save(order);
+            return enrichOrderWithUserInfo(saved, fallback);
         }
     }
 

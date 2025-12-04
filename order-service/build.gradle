@@ -5,6 +5,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
+    // Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
     // Database
     runtimeOnly 'org.postgresql:postgresql'
 
@@ -15,14 +18,14 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
-    // Resilience4j для Circuit Breaker
-    implementation 'io.github.resilience4j:resilience4j-spring-boot2:1.7.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:1.7.0'
+    // Resilience4j (совместимо с Spring Boot 3.5)
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
 
     // JWT для межсервисной аутентификации
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
@@ -35,4 +38,43 @@ dependencies {
     // Тестирование
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.mockito:mockito-core:5.7.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
+    testImplementation 'io.github.resilience4j:resilience4j-test:2.2.0'
+
+    // TestContainers для интеграционных тестов
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+
+    // Для WebTestClient
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Для работы с JSON в тестах
+    testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+
+    // Jakarta
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+    testImplementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    // AssertJ
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+
+    configurations.all {
+        // Исключаем старые версии WireMock, если они есть
+        exclude group: 'com.github.tomakehurst', module: 'wiremock'
+        exclude group: 'com.github.tomakehurst', module: 'wiremock-jre8'
+        exclude group: 'com.github.tomakehurst', module: 'wiremock-jre8-standalone'
+        exclude group: 'com.github.tomakehurst', module: 'wiremock-standalone'
+
+        // Исключаем старые версии Jetty, которые могут конфликтовать
+        exclude group: 'org.eclipse.jetty', module: 'jetty-server'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-servlet'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-webapp'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-http'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-io'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-util'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-security'
+        exclude group: 'org.eclipse.jetty.http2', module: 'http2-server'
+    }
 }
