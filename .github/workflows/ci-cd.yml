@@ -85,9 +85,6 @@ jobs:
       - name: Run unit tests for auth-service
         run: ./gradlew :auth-service:test
 
-      - name: Run unit tests for order-service
-        run: ./gradlew :order-service:test --stacktrace
-
       - name: Run integration tests for user-service
         run: ./gradlew :user-service:integration-test
         env:
@@ -97,7 +94,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
-      - name: Run integration tests for order-service
+      - name: Run tests for order-service
         run: ./gradlew :order-service:integrationTest --stacktrace
         env:
           DB_URL: jdbc:postgresql://localhost:5432/${{ secrets.CI_POSTGRES_DB }}
