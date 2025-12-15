@@ -27,25 +27,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final int index = 7;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                  HttpServletResponse response, 
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/api/v1/auth/internal/");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                  HttpServletResponse response,
                                   FilterChain filterChain) throws ServletException, IOException {
         try {
             String token = getTokenFromRequest(request);
-            
+
             if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
                 String email = jwtTokenProvider.getEmailFromToken(token);
                 Role role = jwtTokenProvider.getRoleFromToken(token);
                 Long userId = jwtTokenProvider.getUserIdFromToken(token);
-                
+
                 var authorities = Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + role.name())
                 );
-                
+
                 var authentication = new UsernamePasswordAuthenticationToken(
                     userId, null, authorities
                 );
-                
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("Authenticated user: {} with role: {}", email, role);
             }
@@ -53,10 +58,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("Cannot set user authentication", e);
             SecurityContextHolder.clearContext();
         }
-        
+
         filterChain.doFilter(request, response);
     }
-    
+
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

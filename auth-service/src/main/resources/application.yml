@@ -38,6 +38,10 @@ app:
     access-token-expiration: 900000     # 15 minutes
     refresh-token-expiration: 604800000     # 7 days
 
+api:
+  gateway:
+    internal-token:${API_GATEWAY_INTERNAL_TOKEN}
+
 logging:
   level:
     com.stoliar: DEBUG

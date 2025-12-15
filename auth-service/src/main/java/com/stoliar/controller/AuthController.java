@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +26,9 @@ public class AuthController {
 
     private final AuthService authService;
     private final int index = 7;
+
+    @Value("${api-gateway.internal-token}")
+    private String apiGatewayInternalToken;
 
     @Operation(summary = "Save user credentials", description = "Save user credentials (ADMIN only)")
     @PostMapping("/register")
@@ -94,5 +98,46 @@ public class AuthController {
             return bearerToken.substring(index);
         }
         return null;
+    }
+
+    @Operation(summary = "Delete user for rollback", description = "Delete user by ID (for internal use by API Gateway)")
+    @DeleteMapping("/internal/users/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteUserForRollback(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Service-Name", required = false) String serviceName,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        log.info("Deleting user for rollback, id: {}", id);
+
+        // Проверяем, что запрос от API Gateway
+        if (!"api-gateway".equals(serviceName)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Access denied. Only API Gateway can call this endpoint"));
+        }
+
+        // Проверяем внутренний токен
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Authorization token required"));
+        }
+
+        String token = authHeader.substring(index);
+
+        // Проверяем внутренний токен API Gateway
+        if (!apiGatewayInternalToken.equals(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid internal token"));
+        }
+
+        try {
+            // Используем сервис для удаления пользователя
+            authService.deleteUserForRollback(id, serviceName);
+            log.info("User deleted for rollback, id: {}", id);
+            return ResponseEntity.ok(ApiResponse.success(null, "User deleted for rollback"));
+        } catch (Exception e) {
+            log.error("Error deleting user for rollback: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete user: " + e.getMessage()));
+        }
     }
 }

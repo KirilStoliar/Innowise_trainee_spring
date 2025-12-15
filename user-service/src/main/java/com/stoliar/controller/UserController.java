@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
+    @Value("${api.gateway.internal-token}")
+    private String apiGatewayInternalToken;
+
+    private final int index = 7;
 
     @Operation(summary = "Create user", description = "Create a new user (ADMIN only)")
     @ApiResponses(value = {
@@ -142,5 +148,46 @@ public class UserController {
         log.info("Deleting user with id: {}", id);
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Delete user for rollback", description = "Delete user by ID (for internal use by API Gateway)")
+    @DeleteMapping("/internal/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteUserForRollback(
+            @Parameter(description = "User ID", required = true) @PathVariable Long id,
+            @RequestHeader(value = "X-Service-Name", required = false) String serviceName,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        log.info("Internal delete user for rollback, id: {}", id);
+
+        // Проверяем, что запрос от API Gateway
+        if (!"api-gateway".equals(serviceName)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Access denied. Only API Gateway can call this endpoint"));
+        }
+
+        // Проверяем внутренний токен
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Authorization token required"));
+        }
+
+        String token = authHeader.substring(index);
+
+        // Проверяем внутренний токен API Gateway
+        if (!apiGatewayInternalToken.equals(token)) {
+            log.warn("Invalid internal token received: {}", token);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid internal token"));
+        }
+
+        try {
+            userService.deleteUser(id);
+            log.info("User deleted for rollback, id: {}", id);
+            return ResponseEntity.ok(ApiResponse.success(null, "User deleted for rollback"));
+        } catch (Exception e) {
+            log.error("Error deleting user for rollback: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete user: " + e.getMessage()));
+        }
     }
 }

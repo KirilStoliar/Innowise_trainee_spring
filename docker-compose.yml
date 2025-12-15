@@ -1,4 +1,23 @@
 services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET}
+      - API_GATEWAY_INTERNAL_TOKEN=${API_GATEWAY_INTERNAL_TOKEN}
+    depends_on:
+      - auth-service
+      - user-service
+      - order-service
+    networks:
+      - innowise-network
+    restart: unless-stopped
+
   # Auth Service
   auth-service:
     build:
@@ -13,6 +32,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - USER_SERVICE_URL=http://user-service:8080
       - SHOW_SQL=${SHOW_SQL}
+      - API_GATEWAY_INTERNAL_TOKEN=${API_GATEWAY_INTERNAL_TOKEN}
     depends_on:
       - auth-db
       - user-service
@@ -35,6 +55,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - API_GATEWAY_INTERNAL_TOKEN=${API_GATEWAY_INTERNAL_TOKEN}
     depends_on:
       - user-db
       - redis
