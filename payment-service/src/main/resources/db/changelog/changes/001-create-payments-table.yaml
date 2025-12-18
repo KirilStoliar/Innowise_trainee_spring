@@ -8,19 +8,18 @@ databaseChangeLog:
             columns:
               - column:
                   name: id
-                  type: UUID
+                  type: BIGSERIAL
                   constraints:
                     primaryKey: true
                     nullable: false
-                  defaultValueComputed: gen_random_uuid()
               - column:
                   name: order_id
-                  type: UUID
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
                   name: user_id
-                  type: UUID
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
