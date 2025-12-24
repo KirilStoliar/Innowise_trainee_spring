@@ -15,16 +15,16 @@ public class ExternalApiClient {
     
     private final RestTemplate restTemplate;
     private final Random random;
-    
+
     @Value("${external.api.url:https://www.random.org/integers}")
     private String externalApiUrl;
-    
+
     @Value("${payment.service.fallback.enabled:true}")
     private boolean fallbackEnabled;
-    
-    public ExternalApiClient() {
-        this.restTemplate = new RestTemplate();
-        this.random = new Random();
+
+    public ExternalApiClient(RestTemplate restTemplate, Random random) {
+        this.restTemplate = restTemplate;
+        this.random = random;
     }
     
     /**
