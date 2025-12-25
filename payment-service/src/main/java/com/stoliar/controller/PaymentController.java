@@ -122,9 +122,9 @@ public class PaymentController {
     @GetMapping("/user/{userId}/total")
     public ResponseEntity<ApiResponse<BigDecimal>> getTotalSumByUserId(
             @Parameter(description = "User ID", required = true) @PathVariable Long userId,
-            @Parameter(description = "Start date (ISO format). Example: 2025-01-01'T'14:10:50")
+            @Parameter(description = "Start date (ISO format). Example: 2025-12-25T10%3A00%3A00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @Parameter(description = "End date (ISO format). Example: 2025-01-01'T'14:10:50")
+            @Parameter(description = "End date (ISO format). Example: 2025-12-25T10%3A00%3A00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
         log.info("Calculating total sum for user {} from {} to {}", userId, startDate, endDate);
@@ -138,9 +138,9 @@ public class PaymentController {
     })
     @GetMapping("/total")
     public ResponseEntity<ApiResponse<BigDecimal>> getTotalSum(
-            @Parameter(description = "Start date (ISO format). Example: 2025-01-01'T'14:10:50")
+            @Parameter(description = "Start date (ISO format). Example: 2025-12-25T10%3A00%3A00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @Parameter(description = "End date (ISO format). Example: 2025-01-01'T'14:10:50")
+            @Parameter(description = "End date (ISO format). Example: 2025-12-25T10%3A00%3A00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
         log.info("Calculating total sum for all users from {} to {}", startDate, endDate);
