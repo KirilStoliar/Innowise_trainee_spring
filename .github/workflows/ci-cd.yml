@@ -54,6 +54,32 @@ jobs:
         ports:
           - 8080:8080
 
+      kafka:
+        image: confluentinc/cp-kafka:7.4.0
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+        ports:
+          - 9092:9092
+
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.4.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+        ports:
+          - 2181:2181
+        options: >-
+          --health-cmd="echo ruok | nc localhost 2181 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -104,6 +130,11 @@ jobs:
           USER_SERVICE_URL: http://localhost:8080  # URL для мокирования user-service
           JWT_SECRET: test-secret-key-for-jwt-signing-in-tests-only
 
+      - name: Run unit tests for payment-service
+        run: ./gradlew :payment-service:test
+        env:
+          EXTERNAL_API_URL: http://localhost:8080/integers
+
       - name: Build JARs for all modules
         run: ./gradlew bootJar --stacktrace
 
@@ -151,6 +182,9 @@ jobs:
           API_GATEWAY_INTERNAL_TOKEN: ${{ secrets.API_GATEWAY_INTERNAL_TOKEN }}
           GATEWAY_ADMIN_EMAIL: ${{ secrets.GATEWAY_ADMIN_EMAIL }}
           GATEWAY_ADMIN_PASSWORD: ${{ secrets.GATEWAY_ADMIN_PASSWORD }}
+          # Для payment-service
+          EXTERNAL_API_URL: http://localhost:8080/integers
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
           # Для других сервисов
           DB_URL: jdbc:postgresql://localhost:5432/test_db
           DB_USERNAME: test_user
@@ -246,6 +280,18 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build and push payment-service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./payment-service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/payment-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
 
       - name: Build and push api-gateway
         uses: docker/build-push-action@v5
