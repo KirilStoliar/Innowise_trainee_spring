@@ -61,3 +61,19 @@ project(':order-service') {
         archiveFileName = 'order-service.jar'
     }
 }
+
+project(':api-gateway') {
+    apply plugin: 'org.springframework.boot'
+
+    bootJar {
+        archiveFileName = 'api-gateway.jar'
+    }
+}
+
+project(':payment-service') {
+    apply plugin: 'org.springframework.boot'
+
+    bootJar {
+        archiveFileName = 'payment-service.jar'
+    }
+}

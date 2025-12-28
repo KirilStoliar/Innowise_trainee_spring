@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: kiril stoliar
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO items (name, price, created_at, updated_at) VALUES
+              ('Laptop', 999.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Smartphone', 699.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Tablet', 499.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Wireless Headphones', 199.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Smart Watch', 299.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Gaming Console', 399.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Bluetooth Speaker', 89.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Monitor', 249.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Keyboard', 79.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              ('Mouse', 49.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

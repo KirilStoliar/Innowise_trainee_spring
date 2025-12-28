@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop, userservice_docker ]
+    branches: [ main, develop ]
 
 env:
   REGISTRY: docker.io
@@ -43,6 +43,42 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
+
+      wiremock:
+        image: wiremock/wiremock:3.3.1
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/__admin || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 8080:8080
+
+      kafka:
+        image: confluentinc/cp-kafka:7.4.0
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+        ports:
+          - 9092:9092
+
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.4.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+        ports:
+          - 2181:2181
+        options: >-
+          --health-cmd="echo ruok | nc localhost 2181 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
       - name: Checkout code
@@ -84,8 +120,23 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
+      - name: Run tests for order-service
+        run: ./gradlew :order-service:test --stacktrace
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/${{ secrets.CI_POSTGRES_DB }}
+          DB_USERNAME: ${{ secrets.CI_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          WIREMOCK_SERVER_PORT: 8080  # Порт WireMock
+          USER_SERVICE_URL: http://localhost:8080  # URL для мокирования user-service
+          JWT_SECRET: test-secret-key-for-jwt-signing-in-tests-only
+
+      - name: Run unit tests for payment-service
+        run: ./gradlew :payment-service:test
+        env:
+          EXTERNAL_API_URL: http://localhost:8080/integers
+
       - name: Build JARs for all modules
-        run: ./gradlew bootJar
+        run: ./gradlew bootJar --stacktrace
 
       - name: Test Report
         uses: dorny/test-reporter@v1
@@ -125,6 +176,21 @@ jobs:
       - name: Build and generate coverage reports
         run: |
           ./gradlew clean build jacocoTestReport --stacktrace --no-daemon
+        env:
+          # Передаем переменные окружения для всех сервисов
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          API_GATEWAY_INTERNAL_TOKEN: ${{ secrets.API_GATEWAY_INTERNAL_TOKEN }}
+          GATEWAY_ADMIN_EMAIL: ${{ secrets.GATEWAY_ADMIN_EMAIL }}
+          GATEWAY_ADMIN_PASSWORD: ${{ secrets.GATEWAY_ADMIN_PASSWORD }}
+          # Для payment-service
+          EXTERNAL_API_URL: http://localhost:8080/integers
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+          # Для других сервисов
+          DB_URL: jdbc:postgresql://localhost:5432/test_db
+          DB_USERNAME: test_user
+          DB_PASSWORD: test_password
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
       - name: Debug - Check reports exist
         run: |
@@ -189,6 +255,8 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
 
       - name: Build and push auth-service
         uses: docker/build-push-action@v5
@@ -199,6 +267,46 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            API_GATEWAY_INTERNAL_TOKEN=${{ secrets.API_GATEWAY_INTERNAL_TOKEN }}
+
+      - name: Build and push order-service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./order-service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push payment-service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./payment-service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/payment-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+      - name: Build and push api-gateway
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./api-gateway/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            API_GATEWAY_INTERNAL_TOKEN=${{ secrets.API_GATEWAY_INTERNAL_TOKEN }}
+            GATEWAY_ADMIN_EMAIL=${{ secrets.GATEWAY_ADMIN_EMAIL }}
+            GATEWAY_ADMIN_PASSWORD=${{ secrets.GATEWAY_ADMIN_PASSWORD }}
 
   security-scan:
     name: Security Scan

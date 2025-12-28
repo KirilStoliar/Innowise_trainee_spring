@@ -7,11 +7,14 @@ import com.stoliar.exception.DuplicateResourceException;
 import com.stoliar.exception.InvalidCredentialsException;
 import com.stoliar.exception.UserServiceException;
 import com.stoliar.repository.UserCredentialsRepository;
+import com.stoliar.response.ApiResponse;
 import com.stoliar.service.AuthService;
 import com.stoliar.service.UserServiceClient;
 import com.stoliar.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -211,9 +214,38 @@ public class AuthServiceImpl implements AuthService {
         return new TokenValidationResponse(true, username, role, "Token is valid");
     }
 
-//    @Override
-//    public UserCredentials getUserCredentialsByUsername(String email) {
-//        return userCredentialsRepository.findByEmail(email)
-//                .orElseThrow(() -> new InvalidCredentialsException("User not found: " + email));
-//    }
+    public ResponseEntity<ApiResponse<Void>> deleteUserForRollback(Long id, String serviceName) {
+        log.info("Deleting user for rollback, id: {}", id);
+
+        try {
+            // 1. Удаляем пользователя в user-service
+            ResponseEntity<ApiResponse<Void>> userServiceResponse = userServiceClient.deleteUserForRollback(id, serviceName);
+
+            if (!userServiceResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("Failed to delete user in user-service. Status: {}", userServiceResponse.getStatusCode());
+                return userServiceResponse;
+            }
+
+            // 2. Удаляем пользователя в auth-service
+            if (!userCredentialsRepository.existsById(id)) {
+                log.warn("User not found in auth-service, id: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("User not found in auth-service"));
+            }
+
+            userCredentialsRepository.deleteById(id);
+
+            log.info("User deleted successfully from both services, id: {}", id);
+            return ResponseEntity.ok(ApiResponse.success(null, "User deleted for rollback"));
+
+        } catch (UserServiceException e) {
+            log.error("Failed to delete user in user-service during rollback. Auth record will be preserved. Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete user in user-service: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Unexpected error during rollback deletion, id: {}, error: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Unexpected error: " + e.getMessage()));
+        }
+    }
 }

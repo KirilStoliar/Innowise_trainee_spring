@@ -1,0 +1,31 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: api-gateway
+
+gateway:
+  auth:
+    url: http://auth-service:8081
+  user:
+    url: http://user-service:8080
+  order:
+    url: http://order-service:8082
+  payment:
+    url: http://payment-service:8084
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+
+# admin defaults
+gateway-admin:
+  email: ${GATEWAY_ADMIN_EMAIL:admin@example.com}
+  password: ${GATEWAY_ADMIN_PASSWORD:admin123}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+    org.springframework.web: INFO
