@@ -42,6 +42,26 @@ services:
       - innowise-network
     restart: unless-stopped
 
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    ports:
+      - "${ORDER_SERVICE_PORT}:8082"
+    environment:
+      - DB_URL_ORDER=jdbc:postgresql://order-db:5432/${ORDER_DB_NAME}
+      - DB_URL=${DB_URL_ORDER}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - SHOW_SQL=${SHOW_SQL}
+      - LIQUIBASE_ENABLED=${LIQUIBASE_ENABLED}
+    depends_on:
+      - order-db
+    networks:
+      - innowise-network
+    restart: unless-stopped
+
   # Databases
   auth-db:
     image: postgres:15-alpine
@@ -67,6 +87,21 @@ services:
       - "${USER_DB_PORT}:5432"
     volumes:
       - user-postgres-data:/var/lib/postgresql/data
+    networks:
+      - innowise-network
+    restart: unless-stopped
+
+  # Order Database
+  order-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${ORDER_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${ORDER_DB_PORT}:5432"
+    volumes:
+      - order-postgres-data:/var/lib/postgresql/data
     networks:
       - innowise-network
     restart: unless-stopped

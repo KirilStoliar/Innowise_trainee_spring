@@ -6,4 +6,4 @@ README.md
 .idea
 .DS_Store
 .env
-docker-compose.yml
+../docker-compose.yml
