@@ -5,7 +5,7 @@ import com.stoliar.dto.order.OrderFilterDto;
 import com.stoliar.dto.order.OrderResponseDto;
 import com.stoliar.dto.order.OrderUpdateDto;
 import com.stoliar.entity.Order;
-import com.stoliar.service.OrderService;
+import com.stoliar.service.impl.OrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,7 +34,7 @@ import java.util.List;
 @Tag(name = "Order Management", description = "APIs for managing orders")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderServiceImpl orderService;
 
     @Operation(summary = "Create a new order", description = "Create a new order with items")
     @ApiResponses(value = {
