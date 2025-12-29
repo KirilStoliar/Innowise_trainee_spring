@@ -18,6 +18,9 @@ public class Order extends AuditableEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(nullable = false)
+    private String email; // Для связи с User Service
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;

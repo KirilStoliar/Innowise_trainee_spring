@@ -21,3 +21,42 @@ spring:
 
 server:
   port: 8082
+
+# User Service configuration
+user:
+  service:
+    url: ${USER_SERVICE_URL:http://localhost:8080}
+#    jwt-secret: ${JWT_SECRET}
+
+# Resilience4j Circuit Breaker configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 3s
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      userService:
+        base-config: default
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.net.ConnectException
+    instances:
+      userService:
+        base-config: default
+
+# Для логирования Circuit Breaker событий
+logging:
+  level:
+    io.github.resilience4j: DEBUG
+    com.stoliar.client.UserServiceClient: DEBUG
