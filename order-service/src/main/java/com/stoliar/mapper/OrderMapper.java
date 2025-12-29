@@ -2,9 +2,11 @@ package com.stoliar.mapper;
 
 import com.stoliar.dto.OrderCreateDto;
 import com.stoliar.dto.OrderResponseDto;
+import com.stoliar.dto.UserInfoDto;
 import com.stoliar.entity.Order;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
@@ -26,5 +28,8 @@ public interface OrderMapper {
     @Mapping(target = "orderItems", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Order toEntity(OrderCreateDto orderCreateDto);
+    Order toEntity(OrderCreateDto orderCreateDto, UserInfoDto userInfo);
+
+    @Mapping(target = "email", source = "userInfo.email")
+    void updateOrderFromUserInfo(@MappingTarget Order order, UserInfoDto userInfo);
 }
