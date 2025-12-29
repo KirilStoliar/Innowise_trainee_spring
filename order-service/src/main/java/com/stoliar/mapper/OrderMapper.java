@@ -6,7 +6,6 @@ import com.stoliar.dto.user.UserInfoDto;
 import com.stoliar.entity.Order;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
@@ -29,7 +28,4 @@ public interface OrderMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Order toEntity(OrderCreateDto orderCreateDto, UserInfoDto userInfo);
-
-    @Mapping(target = "email", source = "userInfo.email")
-    void updateOrderFromUserInfo(@MappingTarget Order order, UserInfoDto userInfo);
 }
