@@ -1,9 +1,9 @@
 package com.stoliar.service;
 
-import com.stoliar.dto.OrderCreateDto;
-import com.stoliar.dto.OrderFilterDto;
-import com.stoliar.dto.OrderResponseDto;
-import com.stoliar.dto.OrderUpdateDto;
+import com.stoliar.dto.order.OrderCreateDto;
+import com.stoliar.dto.order.OrderFilterDto;
+import com.stoliar.dto.order.OrderResponseDto;
+import com.stoliar.dto.order.OrderUpdateDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

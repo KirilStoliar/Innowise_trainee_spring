@@ -1,6 +1,8 @@
 package com.stoliar.client;
 
-import com.stoliar.dto.UserInfoDto;
+import com.stoliar.dto.user.UserApiResponse;
+import com.stoliar.dto.user.UserInfoDto;
+import com.stoliar.util.ServiceTokenProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,9 @@ import org.springframework.web.client.RestTemplate;
 public class UserServiceClient {
 
     private final RestTemplate restTemplate;
+    private final ServiceTokenProvider serviceTokenProvider;
 
-    @Value("${user.service.url:http://user-service:8080}")
+    @Value("${user.service.url:http://localhost:8080}")
     private String userServiceUrl;
 
     @CircuitBreaker(name = "userService", fallbackMethod = "getUserByIdFallback")
@@ -30,21 +33,42 @@ public class UserServiceClient {
 
         String url = userServiceUrl + "/api/v1/users/" + userId;
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = createServiceHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<UserInfoDto> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                UserInfoDto.class
-        );
+        try {
+            // Используем UserApiResponse вместо UserInfoDto
+            ResponseEntity<UserApiResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    UserApiResponse.class
+            );
 
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return response.getBody();
-        } else {
-            log.error("Failed to get user info. Status: {}", response.getStatusCode());
-            throw new RuntimeException("Failed to get user info from user service");
+            log.info("Response status: {}", response.getStatusCode());
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                UserApiResponse apiResponse = response.getBody();
+                log.info("API Response success: {}, message: {}",
+                        apiResponse.isSuccess(), apiResponse.getMessage());
+
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    UserInfoDto userInfo = apiResponse.getData();
+                    log.info("Received user info: ID={}, Email={}, Name={}",
+                            userInfo.getId(), userInfo.getEmail(), userInfo.getName());
+                    return userInfo;
+                } else {
+                    log.error("User service returned unsuccessful response: {}", apiResponse.getMessage());
+                    // Вместо RuntimeException возвращаем fallback
+                    return createFallbackUser(userId);
+                }
+            } else {
+                log.error("Failed to get user info. Status: {}", response.getStatusCode());
+                return createFallbackUser(userId);
+            }
+        } catch (Exception e) {
+            log.error("Error calling user service: {}", e.getMessage(), e);
+            return createFallbackUser(userId);
         }
     }
 
@@ -55,7 +79,7 @@ public class UserServiceClient {
 
         String url = userServiceUrl + "/api/v1/users/email/" + email;
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = createServiceHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         ResponseEntity<UserInfoDto> response = restTemplate.exchange(
@@ -71,6 +95,14 @@ public class UserServiceClient {
             log.error("Failed to get user info by email. Status: {}", response.getStatusCode());
             throw new RuntimeException("Failed to get user info from user service");
         }
+    }
+
+    private HttpHeaders createServiceHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        String serviceToken = serviceTokenProvider.generateServiceToken();
+        headers.setBearerAuth(serviceToken);
+        headers.set("X-Service-Name", "order-service");
+        return headers;
     }
 
     // Fallback методы
