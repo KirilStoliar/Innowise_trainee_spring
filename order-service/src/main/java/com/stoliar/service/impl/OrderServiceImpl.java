@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 @Service
 @Validated
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
@@ -52,7 +51,7 @@ public class OrderServiceImpl implements OrderService {
     private final ItemMapper itemMapper;
     private final UserServiceClient userServiceClient;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public OrderResponseDto createOrder(@Valid OrderCreateDto orderCreateDto) {
         log.info("Creating order for user id: {}", orderCreateDto.getUserId());
 
@@ -78,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public OrderResponseDto getOrderById(Long id) {
         log.info("Getting order by id: {}", id);
 
@@ -94,7 +93,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<OrderResponseDto> getOrdersWithFilters(@Valid OrderFilterDto filterDto) {
         log.info("Getting orders with filters");
 
@@ -115,7 +114,7 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<OrderResponseDto> getOrdersByUserId(Long userId, Pageable pageable) {
         log.info("Getting orders for user: {}", userId);
 
@@ -131,7 +130,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public OrderResponseDto updateOrder(Long id, @Valid OrderUpdateDto orderUpdateDto) {
         log.info("Updating order with id: {}", id);
 
@@ -169,7 +168,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void deleteOrder(Long id) {
         log.info("Deleting order with id: {}", id);
 
@@ -180,8 +179,7 @@ public class OrderServiceImpl implements OrderService {
         orderItemRepository.deleteByOrderId(id);
         orderRepository.softDeleteById(id);
     }
-
-    // Вспомогательные методы
+    
     private void createOrderItems(Order order, List<OrderItemCreateDto> orderItemCreateDtos) {
         if (orderItemCreateDtos == null || orderItemCreateDtos.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
