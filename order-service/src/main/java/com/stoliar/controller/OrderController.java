@@ -5,7 +5,7 @@ import com.stoliar.dto.order.OrderFilterDto;
 import com.stoliar.dto.order.OrderResponseDto;
 import com.stoliar.dto.order.OrderUpdateDto;
 import com.stoliar.entity.Order;
-import com.stoliar.service.OrderService;
+import com.stoliar.service.impl.OrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
