@@ -5,7 +5,7 @@ import com.stoliar.dto.order.OrderFilterDto;
 import com.stoliar.dto.order.OrderResponseDto;
 import com.stoliar.dto.order.OrderUpdateDto;
 import com.stoliar.entity.Order;
-import com.stoliar.service.OrderService;
+import com.stoliar.service.impl.OrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,7 +34,7 @@ import java.util.List;
 @Tag(name = "Order Management", description = "APIs for managing orders")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderServiceImpl orderServiceImpl;
 
     @Operation(summary = "Create a new order", description = "Create a new order with items")
     @ApiResponses(value = {
@@ -45,7 +45,7 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody OrderCreateDto orderCreateDto) {
         log.info("Creating new order for user: {}", orderCreateDto.getUserId());
-        OrderResponseDto createdOrder = orderService.createOrder(orderCreateDto);
+        OrderResponseDto createdOrder = orderServiceImpl.createOrder(orderCreateDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 
@@ -59,7 +59,7 @@ public class OrderController {
             @Parameter(description = "Order ID", required = true) @PathVariable Long id) {
         
         log.info("Getting order by id: {}", id);
-        OrderResponseDto order = orderService.getOrderById(id);
+        OrderResponseDto order = orderServiceImpl.getOrderById(id);
         return ResponseEntity.ok(order);
     }
 
@@ -90,7 +90,7 @@ public class OrderController {
         filterDto.setCreatedTo(createdTo);
         filterDto.setStatuses(statuses);
         
-        Page<OrderResponseDto> orders = orderService.getOrdersWithFilters(filterDto);
+        Page<OrderResponseDto> orders = orderServiceImpl.getOrdersWithFilters(filterDto);
         return ResponseEntity.ok(orders);
     }
 
@@ -108,7 +108,7 @@ public class OrderController {
         
         log.info("Getting orders for user: {}", userId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
-        Page<OrderResponseDto> orders = orderService.getOrdersByUserId(userId, pageable);
+        Page<OrderResponseDto> orders = orderServiceImpl.getOrdersByUserId(userId, pageable);
         return ResponseEntity.ok(orders);
     }
 
@@ -132,7 +132,7 @@ public class OrderController {
             @Valid @RequestBody OrderUpdateDto orderUpdateDto) {
 
         log.info("Updating order with id: {}", id);
-        OrderResponseDto updatedOrder = orderService.updateOrder(id, orderUpdateDto);
+        OrderResponseDto updatedOrder = orderServiceImpl.updateOrder(id, orderUpdateDto);
         return ResponseEntity.ok(updatedOrder);
     }
 
@@ -146,7 +146,7 @@ public class OrderController {
             @Parameter(description = "Order ID", required = true) @PathVariable Long id) {
         
         log.info("Deleting order with id: {}", id);
-        orderService.deleteOrder(id);
+        orderServiceImpl.deleteOrder(id);
         return ResponseEntity.noContent().build();
     }
 }
