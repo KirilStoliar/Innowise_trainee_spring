@@ -51,30 +51,33 @@ public class OrderServiceImpl implements OrderService {
     private final ItemMapper itemMapper;
     private final UserServiceClient userServiceClient;
 
-    @Transactional(readOnly = true)
-    public OrderResponseDto createOrder(@Valid OrderCreateDto orderCreateDto) {
-        log.info("Creating order for user id: {}", orderCreateDto.getUserId());
+    @Transactional
+    public OrderResponseDto createOrder(@Valid OrderCreateDto dto) {
+
+        log.info("Creating order for user id: {}", dto.getUserId());
+
+        UserInfoDto userInfo;
 
         try {
-            UserInfoDto userInfo = userServiceClient.getUserById(orderCreateDto.getUserId());
-
-            if (userInfo.getId() == null || userInfo.getId() == -1L) {
-                throw new EntityNotFoundException("User not found with id: " + orderCreateDto.getUserId());
-            }
-
-            Order order = orderMapper.toEntity(orderCreateDto, userInfo);
-
-            createOrderItems(order, orderCreateDto.getOrderItems());
-            calculateTotalPrice(order);
-
-            Order savedOrder = orderRepository.save(order);
-            log.info("Order created with id: {}", savedOrder.getId());
-
-            return enrichOrderWithUserInfo(savedOrder, userInfo);
+            userInfo = userServiceClient.getUserById(dto.getUserId());
         } catch (Exception e) {
-            log.error("Failed to create order for user {}: {}", orderCreateDto.getUserId(), e.getMessage());
-            throw new ServiceUnavailableException("Failed to create order: " + e.getMessage(), e);
+            log.error("User service unavailable", e);
+            throw new ServiceUnavailableException("User service unavailable", e);
         }
+
+        // fallback только если пользователь НЕ НАЙДЕН
+        if (userInfo.getId() == null || userInfo.getId() == -1L) {
+            userInfo = createFallbackUser(dto.getUserId());
+        }
+
+        Order order = orderMapper.toEntity(dto, userInfo);
+
+        createOrderItems(order, dto.getOrderItems());
+        calculateTotalPrice(order);
+
+        Order saved = orderRepository.save(order);
+
+        return enrichOrderWithUserInfo(saved, userInfo);
     }
 
     @Transactional(readOnly = true)
@@ -179,7 +182,7 @@ public class OrderServiceImpl implements OrderService {
         orderItemRepository.deleteByOrderId(id);
         orderRepository.softDeleteById(id);
     }
-    
+
     private void createOrderItems(Order order, List<OrderItemCreateDto> orderItemCreateDtos) {
         if (orderItemCreateDtos == null || orderItemCreateDtos.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
