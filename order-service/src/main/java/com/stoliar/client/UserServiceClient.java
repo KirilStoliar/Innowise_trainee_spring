@@ -105,7 +105,6 @@ public class UserServiceClient {
         return headers;
     }
 
-    // Fallback методы
     public UserInfoDto getUserByIdFallback(Long userId, Exception e) {
         log.warn("Circuit Breaker Fallback triggered for userId: {}. Error: {}", userId, e.getMessage());
         return createFallbackUser(userId);
