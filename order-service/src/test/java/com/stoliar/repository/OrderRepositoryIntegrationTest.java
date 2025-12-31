@@ -20,21 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class OrderRepositoryIntegrationTest {
 
-    private static final boolean USE_TESTCONTAINERS =
-            Boolean.parseBoolean(System.getProperty("use.testcontainers", "true"));
-
     @Container
     static PostgreSQLContainer<?> postgres =
-            USE_TESTCONTAINERS
-                    ? new PostgreSQLContainer<>("postgres:15-alpine")
-                        .withDatabaseName("testdb")
-                        .withUsername("test")
-                        .withPassword("test")
-                    : null;
+            new PostgreSQLContainer<>("postgres:15-alpine")
+                    .withDatabaseName("testdb")
+                    .withUsername("test")
+                    .withPassword("test");
 
     @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        if (USE_TESTCONTAINERS) {
+    static void datasourceProps(DynamicPropertyRegistry registry) {
+        boolean useTestcontainers = Boolean.parseBoolean(
+                System.getProperty("use.testcontainers", "true")
+        );
+
+        if (useTestcontainers) {
             registry.add("spring.datasource.url", postgres::getJdbcUrl);
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
