@@ -133,7 +133,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponseDto updateOrder(Long id, @Valid OrderUpdateDto orderUpdateDto) {
         log.info("Updating order with id: {}", id);
 
@@ -171,7 +171,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void deleteOrder(Long id) {
         log.info("Deleting order with id: {}", id);
 
