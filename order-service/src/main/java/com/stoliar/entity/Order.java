@@ -18,6 +18,9 @@ public class Order extends AuditableEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(nullable = false)
+    private String email; // Для связи с User Service
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -28,7 +31,12 @@ public class Order extends AuditableEntity {
     @Column(nullable = false)
     private Boolean deleted = false;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @OneToMany(
+            mappedBy = "order",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH},
+            orphanRemoval = false,  // отключаем, так как будем удалять через репозиторий
+            fetch = FetchType.LAZY
+    )
     private List<OrderItem> orderItems;
 
     public enum OrderStatus {

@@ -44,6 +44,16 @@ jobs:
         ports:
           - 6379:6379
 
+      wiremock:
+        image: wiremock/wiremock:3.3.1
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/__admin || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 8080:8080
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -84,8 +94,18 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
+      - name: Run tests for order-service
+        run: ./gradlew :order-service:test --stacktrace
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/${{ secrets.CI_POSTGRES_DB }}
+          DB_USERNAME: ${{ secrets.CI_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          WIREMOCK_SERVER_PORT: 8080  # Порт WireMock
+          USER_SERVICE_URL: http://localhost:8080  # URL для мокирования user-service
+          JWT_SECRET: test-secret-key-for-jwt-signing-in-tests-only
+
       - name: Build JARs for all modules
-        run: ./gradlew bootJar
+        run: ./gradlew bootJar --stacktrace
 
       - name: Test Report
         uses: dorny/test-reporter@v1
@@ -197,6 +217,16 @@ jobs:
           file: ./auth-service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push order-service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./order-service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

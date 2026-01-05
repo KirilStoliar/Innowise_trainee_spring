@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: order-service-test
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+  liquibase:
+    enabled: false
+
+server:
+  port: 0
+
+user:
+  service:
+    url: http://localhost:9999
+    jwt-secret: test-secret-key-for-jwt-signing-in-tests-only
+
+logging:
+  level:
+    com.stoliar: DEBUG
+    org.springframework: WARN
+    org.hibernate.SQL: false
