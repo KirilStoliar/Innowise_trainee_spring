@@ -52,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserServiceClient userServiceClient;
 
     @Transactional
-    public OrderResponseDto createOrder(@Valid OrderCreateDto dto) {
+    public OrderResponseDto createOrder(OrderCreateDto dto) {
 
         log.info("Creating order for user id: {}", dto.getUserId());
 
@@ -97,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Transactional(readOnly = true)
-    public Page<OrderResponseDto> getOrdersWithFilters(@Valid OrderFilterDto filterDto) {
+    public Page<OrderResponseDto> getOrdersWithFilters(OrderFilterDto filterDto) {
         log.info("Getting orders with filters");
 
         Pageable pageable = PageRequest.of(filterDto.getPage(), filterDto.getSize());
@@ -134,7 +134,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Transactional
-    public OrderResponseDto updateOrder(Long id, @Valid OrderUpdateDto orderUpdateDto) {
+    public OrderResponseDto updateOrder(Long id, OrderUpdateDto orderUpdateDto) {
         log.info("Updating order with id: {}", id);
 
         Order existingOrder = orderRepository.findByIdAndNotDeleted(id)

@@ -56,6 +56,10 @@ public class GatewayConfig {
                         .filters(f -> f.filter(requestLoggingFilter))
                         .uri(authServiceUrl))
 
+                .route("auth-rollback", r -> r.path("/api/v1/auth/rollback/**")
+                        .filters(f -> f.filter(requestLoggingFilter))
+                        .uri(authServiceUrl))
+
                 // AUTH — INTERNAL
                 .route("auth-internal", r -> r.path("/api/v1/auth/internal/**")
                         .filters(f -> f.filter(internalTokenFilter))
