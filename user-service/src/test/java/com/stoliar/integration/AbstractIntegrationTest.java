@@ -41,6 +41,10 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.data.redis.enabled", () -> "false");
         registry.add("spring.cache.type", () -> "none");
 
+        // Свойства, необходимые для UserController
+        registry.add("api.gateway.internal-token", () -> "test-internal-token");
+        registry.add("app.jwt.secret", () -> "test-jwt-secret-for-integration-tests");
+
         // Явно отключаем security для тестов
         registry.add("spring.security.enabled", () -> "false");
         registry.add("management.security.enabled", () -> "false");

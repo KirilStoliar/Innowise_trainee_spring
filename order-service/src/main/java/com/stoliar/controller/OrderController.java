@@ -8,6 +8,7 @@ import com.stoliar.entity.Order;
 import com.stoliar.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,9 +39,9 @@ public class OrderController {
 
     @Operation(summary = "Create a new order", description = "Create a new order with items")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Order created successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User or item not found")
+            @ApiResponse(responseCode = "201", description = "Order created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "User or item not found")
     })
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody OrderCreateDto orderCreateDto) {
@@ -51,13 +52,13 @@ public class OrderController {
 
     @Operation(summary = "Get order by ID", description = "Retrieve a specific order by its ID")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Order retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order not found")
+            @ApiResponse(responseCode = "200", description = "Order retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Order not found")
     })
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponseDto> getOrderById(
             @Parameter(description = "Order ID", required = true) @PathVariable Long id) {
-        
+
         log.info("Getting order by id: {}", id);
         OrderResponseDto order = orderServiceImpl.getOrderById(id);
         return ResponseEntity.ok(order);
@@ -65,39 +66,39 @@ public class OrderController {
 
     @Operation(summary = "Get all orders with filters", description = "Retrieve paginated list of orders with optional filters by date range and status")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Orders retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "Orders retrieved successfully")
     })
     @GetMapping
     public ResponseEntity<Page<OrderResponseDto>> getOrdersWithFilters(
-            @Parameter(description = "Filter by created from date (ISO format)") 
+            @Parameter(description = "Filter by created from date (ISO format)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
-            
-            @Parameter(description = "Filter by created to date (ISO format)") 
+
+            @Parameter(description = "Filter by created to date (ISO format)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
-            
-            @Parameter(description = "Filter by order statuses (comma-separated)") 
+
+            @Parameter(description = "Filter by order statuses (comma-separated)")
             @RequestParam(required = false) List<Order.OrderStatus> statuses,
-            
+
             @Parameter(description = "Page number (default: 0)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (default: 10)") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Sort by field (default: createdAt)") @RequestParam(defaultValue = "createdAt") String sort) {
-        
-        log.info("Getting orders with filters - createdFrom: {}, createdTo: {}, statuses: {}", 
+
+        log.info("Getting orders with filters - createdFrom: {}, createdTo: {}, statuses: {}",
                 createdFrom, createdTo, statuses);
-        
+
         OrderFilterDto filterDto = new OrderFilterDto();
         filterDto.setCreatedFrom(createdFrom);
         filterDto.setCreatedTo(createdTo);
         filterDto.setStatuses(statuses);
-        
+
         Page<OrderResponseDto> orders = orderServiceImpl.getOrdersWithFilters(filterDto);
         return ResponseEntity.ok(orders);
     }
 
     @Operation(summary = "Get orders by user ID", description = "Retrieve paginated list of orders for a specific user")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User orders retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "200", description = "User orders retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<OrderResponseDto>> getOrdersByUserId(
@@ -105,7 +106,7 @@ public class OrderController {
             @Parameter(description = "Page number (default: 0)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (default: 10)") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Sort by field (default: createdAt)") @RequestParam(defaultValue = "createdAt") String sort) {
-        
+
         log.info("Getting orders for user: {}", userId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
         Page<OrderResponseDto> orders = orderServiceImpl.getOrdersByUserId(userId, pageable);
@@ -121,10 +122,10 @@ public class OrderController {
                     "3. Status values: PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Order updated successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order, user or item not found"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Cannot update in current order status")
+            @ApiResponse(responseCode = "200", description = "Order updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Order, user or item not found"),
+            @ApiResponse(responseCode = "409", description = "Cannot update in current order status")
     })
     @PutMapping("/{id}")
     public ResponseEntity<OrderResponseDto> updateOrder(
@@ -138,13 +139,13 @@ public class OrderController {
 
     @Operation(summary = "Delete order", description = "Soft delete an order by ID")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Order deleted successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order not found")
+            @ApiResponse(responseCode = "204", description = "Order deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Order not found")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(
             @Parameter(description = "Order ID", required = true) @PathVariable Long id) {
-        
+
         log.info("Deleting order with id: {}", id);
         orderServiceImpl.deleteOrder(id);
         return ResponseEntity.noContent().build();

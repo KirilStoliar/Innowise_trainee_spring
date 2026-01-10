@@ -5,7 +5,6 @@ spring:
       on-profile: integration-test
 
   # НЕ указываем datasource - его предоставит TestContainers через @DynamicPropertySource
-
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -47,6 +46,14 @@ security:
   basic:
     enabled: false
 
+api:
+  gateway:
+    internal-token: test-internal-token
+
+app:
+  jwt:
+    secret: test-jwt-secret-for-integration-tests
+
 management:
   security:
     enabled: false
@@ -58,3 +65,4 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.testcontainers: INFO
     org.postgresql: INFO
+    org.springframework: WARN

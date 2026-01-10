@@ -55,6 +55,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/validate",
+                                "/api/v1/auth/internal/**",
+                                "/api/v1/auth/rollback/**",
                                 "/actuator/health",
                                 // Swagger endpoints
                                 "/swagger-ui.html",

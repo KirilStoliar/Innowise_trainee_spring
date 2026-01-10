@@ -3,6 +3,7 @@ package com.stoliar.service;
 import com.stoliar.dto.UserCreateRequest;
 import com.stoliar.dto.UserResponse;
 import com.stoliar.exception.UserServiceException;
+import com.stoliar.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +21,11 @@ public class UserServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${user.service.url:http://user-service:8080}")
+    @Value("${user.service.url}")
     private String userServiceUrl;
+
+    @Value("${api.gateway.internal-token}")
+    private String apiGatewayInternalToken;
 
     public UserResponse createUser(UserCreateRequest request, String adminToken) {
         String url = userServiceUrl + "/api/v1/users";
@@ -61,6 +65,72 @@ public class UserServiceClient {
             }
         } catch (Exception e) {
             log.error("Error calling user-service to create user. URL: {}, Error: {}", url, e.getMessage(), e);
+            throw new UserServiceException(
+                    "User service unavailable: " + e.getMessage(),
+                    HttpStatus.SERVICE_UNAVAILABLE
+            );
+        }
+    }
+
+    public ResponseEntity<ApiResponse<Void>> deleteUserForRollback(Long userId, String serviceName) {
+        String url = userServiceUrl + "/api/v1/users/internal/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiGatewayInternalToken);
+        headers.set("X-Service-Name", serviceName);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            log.info("Calling user-service to delete user for rollback, userId: {}", userId);
+
+            ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.DELETE,
+                    entity,
+                    ApiResponse.class
+            );
+
+            log.info("User deleted in user-service: {}", userId);
+            return ResponseEntity.status(response.getStatusCode())
+                    .body(response.getBody());
+
+        } catch (Exception e) {
+            log.error("Error calling user-service to delete user. URL: {}, Error: {}", url, e.getMessage(), e);
+            throw new UserServiceException(
+                    "User service unavailable: " + e.getMessage(),
+                    HttpStatus.SERVICE_UNAVAILABLE
+            );
+        }
+    }
+
+    public ResponseEntity<ApiResponse<Void>> deleteUser(Long userId, String adminToken) {
+        String url = userServiceUrl + "/api/v1/users/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + adminToken);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            log.info("Calling user-service to delete user as admin, userId: {}", userId);
+
+            ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.DELETE,
+                    entity,
+                    ApiResponse.class
+            );
+
+            log.info("User deleted in user-service by admin: {}", userId);
+            return ResponseEntity.status(response.getStatusCode())
+                    .body(response.getBody());
+
+        } catch (Exception e) {
+            log.error("Error calling user-service to delete user as admin. URL: {}, Error: {}",
+                    url, e.getMessage(), e);
             throw new UserServiceException(
                     "User service unavailable: " + e.getMessage(),
                     HttpStatus.SERVICE_UNAVAILABLE

@@ -25,6 +25,10 @@ server:
     include-message: always
     include-binding-errors: always
 
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+
 # User Service configuration
 user:
   service:

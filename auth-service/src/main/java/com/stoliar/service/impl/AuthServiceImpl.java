@@ -4,14 +4,19 @@ import com.stoliar.dto.*;
 import com.stoliar.entity.Role;
 import com.stoliar.entity.UserCredentials;
 import com.stoliar.exception.DuplicateResourceException;
+import com.stoliar.exception.EntityNotFoundException;
 import com.stoliar.exception.InvalidCredentialsException;
 import com.stoliar.exception.UserServiceException;
 import com.stoliar.repository.UserCredentialsRepository;
+import com.stoliar.response.ApiResponse;
 import com.stoliar.service.AuthService;
 import com.stoliar.service.UserServiceClient;
 import com.stoliar.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +35,9 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserServiceClient userServiceClient;
+
+    @Value("${API_GATEWAY_INTERNAL_TOKEN}")
+    private String internalToken;
 
     @Override
     @Transactional
@@ -71,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
         credentials.setBirthDate(request.getBirthDate());
 
         UserCredentials savedCredentials = userCredentialsRepository.save(credentials);
+        Long savedCredentialsId = savedCredentials.getId();
 
         try {
             // Создаем запись в user-service с передачей adminToken
@@ -85,8 +94,20 @@ public class AuthServiceImpl implements AuthService {
             log.info("Successfully created user in user-service with id: {}", userResponse.getId());
 
         } catch (UserServiceException e) {
-            log.error("Failed to create user in user-service. Rolling back auth-service creation", e);
-            userCredentialsRepository.delete(savedCredentials);
+
+            try {
+                // Вызываем метод rollback
+                deleteUserForRollback(savedCredentialsId, internalToken);
+                log.info("Rollback completed successfully");
+            } catch (Exception rollbackEx) {
+                log.error("Rollback also failed! Manual intervention required.", rollbackEx);
+                // Объединяем ошибки
+                throw new RuntimeException(
+                        "User creation failed AND rollback failed! " +
+                                "Creation error: " + e.getMessage() +
+                                " | Rollback error: " + rollbackEx.getMessage(), e);
+            }
+
             throw new RuntimeException("Failed to create user profile: " + e.getMessage());
         }
 
@@ -198,6 +219,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public TokenValidationResponse validateToken(String token) {
         log.info("Validating token");
 
@@ -211,9 +233,98 @@ public class AuthServiceImpl implements AuthService {
         return new TokenValidationResponse(true, username, role, "Token is valid");
     }
 
-//    @Override
-//    public UserCredentials getUserCredentialsByUsername(String email) {
-//        return userCredentialsRepository.findByEmail(email)
-//                .orElseThrow(() -> new InvalidCredentialsException("User not found: " + email));
-//    }
+    @Override
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteUserForRollback(Long id, String internalToken) {
+        log.info("Deleting user for rollback, id: {}", id);
+
+        try {
+            // 1. Удаляем пользователя в user-service
+            ResponseEntity<ApiResponse<Void>> userServiceResponse = userServiceClient.deleteUserForRollback(id, internalToken);
+
+            if (!userServiceResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("Failed to delete user in user-service. Status: {}", userServiceResponse.getStatusCode());
+                return userServiceResponse;
+            }
+
+            // 2. Удаляем пользователя в auth-service
+            if (!userCredentialsRepository.existsById(id)) {
+                log.warn("User not found in auth-service, id: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("User not found in auth-service"));
+            }
+
+            userCredentialsRepository.deleteById(id);
+
+            log.info("User deleted successfully from both services, id: {}", id);
+            return ResponseEntity.ok(ApiResponse.success(null, "User deleted for rollback"));
+
+        } catch (UserServiceException e) {
+            log.error("Failed to delete user in user-service during rollback. Auth record will be preserved. Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete user in user-service: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Unexpected error during rollback deletion, id: {}, error: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Unexpected error: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteUserAsAdmin(Long credentialsId, String adminToken) {
+        log.info("Admin deletion for credentials id: {}", credentialsId);
+
+        try {
+            // 1. Находим пользователя для получения email (для логирования)
+            UserCredentials credentials = userCredentialsRepository.findById(credentialsId)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "User credentials not found with id: " + credentialsId));
+
+            String email = credentials.getEmail();
+            log.info("Admin deleting user: {} (email: {})", credentialsId, email);
+
+            // 2. Удаляем из user-service через публичный API
+            ResponseEntity<ApiResponse<Void>> userServiceResponse =
+                    userServiceClient.deleteUser(credentialsId, adminToken);
+
+            if (!userServiceResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("User service returned error: {} - {}",
+                        userServiceResponse.getStatusCode(),
+                        userServiceResponse.getBody().getMessage());
+
+                return ResponseEntity.status(userServiceResponse.getStatusCode())
+                        .body(ApiResponse.error(
+                                "Failed to delete user in user-service: " +
+                                        userServiceResponse.getBody().getMessage()
+                        ));
+            }
+
+            // 3. Удаляем из auth-db
+            userCredentialsRepository.delete(credentials);
+            log.info("User deleted from auth-db: {}", credentialsId);
+
+            // 4. Возвращаем успешный ответ
+            return ResponseEntity.ok(
+                    ApiResponse.success(null,
+                            String.format("User '%s' (id: %d) deleted successfully by admin",
+                                    email, credentialsId))
+            );
+
+        } catch (EntityNotFoundException e) {
+            log.error("User not found in auth-service: {}", credentialsId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("User not found: " + e.getMessage()));
+
+        } catch (UserServiceException e) {
+            log.error("Failed to delete user in user-service: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete user in user-service: " + e.getMessage()));
+
+        } catch (Exception e) {
+            log.error("Unexpected error during admin deletion: {}", credentialsId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Unexpected error: " + e.getMessage()));
+        }
+    }
 }
