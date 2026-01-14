@@ -7,6 +7,7 @@ import com.stoliar.entity.enums.PaymentStatus;
 import com.stoliar.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
 @WithMockUser(username = "admin", roles = {"ADMIN"})
+@EnabledIfSystemProperty(named = "use.testcontainers", matches = "true")
 class PaymentServiceIntegrationTest extends BaseIntegrationTest {
 
     @Autowired

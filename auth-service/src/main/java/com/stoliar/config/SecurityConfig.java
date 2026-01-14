@@ -51,12 +51,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/validate",
                                 "/api/v1/auth/internal/**",
-                                "/actuator/health",
+                                "/api/v1/auth/rollback/**",
                                 // Swagger endpoints
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
