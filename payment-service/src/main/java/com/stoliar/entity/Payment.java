@@ -15,7 +15,6 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "payments", indexes = {
@@ -30,17 +29,17 @@ import java.util.UUID;
 public class Payment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private Long id;
 
     @NotNull(message = "Order ID cannot be null")
     @Column(name = "order_id", nullable = false)
-    private UUID orderId;
+    private Long orderId;
 
     @NotNull(message = "User ID cannot be null")
     @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    private Long userId;
 
     @NotNull(message = "Status cannot be null")
     @Enumerated(EnumType.STRING)
