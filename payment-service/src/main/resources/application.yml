@@ -21,6 +21,17 @@ spring:
     change-log: classpath:db/changelog/changelog-master.yaml
     enabled: true
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+        spring.json.type.mapping: paymentEvent:com.stoliar.dto.event.PaymentEvent
+    topics:
+      payment-events: ${KAFKA_TOPIC_PAYMENT_EVENTS:payment-events}
+
 server:
   port: 8084
 
@@ -49,3 +60,5 @@ logging:
     com.innowise: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
